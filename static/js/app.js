@@ -1,5 +1,5 @@
 // ═══════════════════════════════════════════════
-// YOLOv9 Pothole Detector — Real-Time App Logic
+// YOLOv9 Pothole Detector — Mobile App Logic
 // ═══════════════════════════════════════════════
 
 // ── State ──
@@ -14,50 +14,128 @@ let eventSource = null;
 let gpsLat = 0, gpsLon = 0, gpsSpeed = 0, gpsHeading = 0, gpsAccuracy = 0;
 
 // Detection settings
-const DETECT_INTERVAL_MS = 800; // send frame every 800ms
+const DETECT_INTERVAL_MS = 800;
 
 // ── Init ──
 document.addEventListener('DOMContentLoaded', () => {
     initChart();
     loadExistingData();
     setupSSE();
-    setupButtons();
-    startClock();
+    setupBottomSheet();
+    registerServiceWorker();
+    initCameraList();
+
+    // Splash screen launch button
+    document.getElementById('btn-launch').addEventListener('click', launchApp);
+    document.getElementById('btn-stop').addEventListener('click', stopSystem);
 });
+
+function registerServiceWorker() {
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/static/sw.js')
+            .then(reg => console.log('PWA Service Worker registered!', reg))
+            .catch(err => console.error('PWA SW failed:', err));
+    }
+}
+
+async function initCameraList() {
+    const select = document.getElementById('camera-select');
+    try {
+        await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const videoDevices = devices.filter(d => d.kind === 'videoinput');
+        
+        select.innerHTML = '';
+        if (videoDevices.length === 0) {
+            select.innerHTML = '<option value="">Tidak ada kamera terdeteksi</option>';
+            return;
+        }
+
+        videoDevices.forEach((device, index) => {
+            const option = document.createElement('option');
+            option.value = device.deviceId;
+            option.text = device.label || `Kamera Eksternal/Internal ${index + 1}`;
+            
+            if (device.label.toLowerCase().includes('back') || device.label.toLowerCase().includes('environment') || device.label.toLowerCase().includes('belakang')) {
+                option.selected = true;
+            }
+            select.appendChild(option);
+        });
+    } catch (err) {
+        console.error('Gagal mendapatkan daftar kamera', err);
+        select.innerHTML = '<option value="">Izinkan akses kamera terlebih dahulu</option>';
+    }
+}
+
+// ═══════════════════════════════════════════════
+// 0. SPLASH → APP TRANSITION (GPS required first)
+// ═══════════════════════════════════════════════
+async function launchApp() {
+    const btn = document.getElementById('btn-launch');
+    btn.innerHTML = '<span class="btn-icon">⏳</span><span>Mengaktifkan GPS...</span>';
+    btn.disabled = true;
+
+    try {
+        // Step 1: GPS must succeed first
+        await startGPS();
+
+        // Step 2: Start camera
+        btn.innerHTML = '<span class="btn-icon">📷</span><span>Mengaktifkan Kamera...</span>';
+        const camOk = await startCamera();
+
+        if (!camOk) {
+            btn.innerHTML = '<span class="btn-icon">⚠️</span><span>Kamera Gagal — Coba Lagi</span>';
+            btn.disabled = false;
+            stopGPS();
+            return;
+        }
+
+        // Step 3: Hide splash, show app
+        document.getElementById('splash-screen').style.display = 'none';
+        document.getElementById('app-container').style.display = 'block';
+        isRunning = true;
+
+        // Step 4: Start detection loop after camera stabilizes
+        setTimeout(() => startDetectionLoop(), 1000);
+
+    } catch (err) {
+        console.error('Launch failed:', err);
+        btn.innerHTML = '<span class="btn-icon">📍</span><span>GPS Ditolak — Izinkan & Coba Lagi</span>';
+        btn.disabled = false;
+    }
+}
 
 // ═══════════════════════════════════════════════
 // 1. CAMERA — Real device camera via getUserMedia
 // ═══════════════════════════════════════════════
 async function startCamera() {
     const video = document.getElementById('camera-video');
+    const select = document.getElementById('camera-select');
+    const selectedDeviceId = select.value;
+    
+    let constraints = { video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false };
+    
+    // Jika pengguna memilih kamera spesifik dari dropdown
+    if (selectedDeviceId) {
+        constraints = { video: { deviceId: { exact: selectedDeviceId }, width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false };
+    }
+
     try {
-        // Prefer rear/environment camera (for motorcycle mount)
-        videoStream = await navigator.mediaDevices.getUserMedia({
-            video: {
-                facingMode: { ideal: 'environment' },
-                width: { ideal: 1280 },
-                height: { ideal: 720 }
-            },
-            audio: false
-        });
+        videoStream = await navigator.mediaDevices.getUserMedia(constraints);
         video.srcObject = videoStream;
         await video.play();
 
-        // Match overlay canvas size to video
         const overlay = document.getElementById('camera-overlay');
         video.addEventListener('loadedmetadata', () => {
             overlay.width = video.videoWidth;
             overlay.height = video.videoHeight;
         });
 
-        updatePill('pill-camera', 'Kamera ON', 'green');
-        document.getElementById('hud-status').innerHTML = 'Kamera aktif — mendeteksi lubang...';
+        updatePill('pill-camera', 'CAM', 'green');
         return true;
     } catch (err) {
         console.error('Camera error:', err);
-        updatePill('pill-camera', 'Kamera GAGAL', 'red');
-        document.getElementById('hud-status').innerHTML =
-            '⚠️ Gagal akses kamera. Izinkan akses kamera di browser.';
+        updatePill('pill-camera', 'CAM ❌', 'red');
         return false;
     }
 }
@@ -67,26 +145,19 @@ function stopCamera() {
         videoStream.getTracks().forEach(t => t.stop());
         videoStream = null;
     }
-    const video = document.getElementById('camera-video');
-    video.srcObject = null;
-    updatePill('pill-camera', 'Kamera OFF', 'red');
+    document.getElementById('camera-video').srcObject = null;
+    updatePill('pill-camera', 'CAM OFF', 'red');
 }
 
 // ═══════════════════════════════════════════════
 // 2. GPS — Real position via Geolocation API
-//    Also provides speed (m/s) automatically!
 // ═══════════════════════════════════════════════
 function startGPS() {
     return new Promise((resolve, reject) => {
         if (!navigator.geolocation) {
-            updatePill('pill-gps', 'GPS Tidak Tersedia', 'red');
-            document.getElementById('hud-status').innerHTML = '⚠️ Browser tidak mendukung GPS.';
             reject(new Error('GPS tidak tersedia'));
             return;
         }
-
-        updatePill('pill-gps', 'GPS Mencari...', 'yellow');
-        document.getElementById('hud-status').innerHTML = 'Mencari sinyal GPS...';
 
         let initialPositionFound = false;
 
@@ -106,9 +177,8 @@ function startGPS() {
                 document.getElementById('hud-speed-val').textContent = speedKmh;
                 document.getElementById('m-speed').textContent = speedKmh;
 
-                // Update pill
-                updatePill('pill-gps', 'GPS ON', 'green');
-                updatePill('pill-speed', `${speedKmh} km/h`, 'yellow');
+                // Update pills
+                updatePill('pill-gps', 'GPS', 'green');
 
                 if (!initialPositionFound) {
                     initialPositionFound = true;
@@ -117,12 +187,7 @@ function startGPS() {
             },
             (err) => {
                 console.error('GPS error:', err);
-                updatePill('pill-gps', 'GPS ERROR', 'red');
-                if (err.code === err.PERMISSION_DENIED) {
-                    document.getElementById('hud-status').innerHTML = '⚠️ Akses Lokasi (GPS) Ditolak. Harap izinkan akses lokasi di browser untuk memulai.';
-                } else {
-                    document.getElementById('hud-status').innerHTML = '⚠️ Gagal mendapatkan sinyal GPS.';
-                }
+                updatePill('pill-gps', 'GPS ❌', 'red');
                 if (!initialPositionFound) {
                     reject(err);
                 }
@@ -130,7 +195,7 @@ function startGPS() {
             {
                 enableHighAccuracy: true,
                 maximumAge: 1000,
-                timeout: 10000
+                timeout: 15000
             }
         );
     });
@@ -142,7 +207,6 @@ function stopGPS() {
         gpsWatchId = null;
     }
     updatePill('pill-gps', 'GPS OFF', 'red');
-    updatePill('pill-speed', '0 km/h', '');
 }
 
 // ═══════════════════════════════════════════════
@@ -158,15 +222,12 @@ function startDetectionLoop() {
     detectionLoop = setInterval(async () => {
         if (!video.videoWidth || video.paused) return;
 
-        // Capture current video frame to hidden canvas
         captureCanvas.width = video.videoWidth;
         captureCanvas.height = video.videoHeight;
         captureCtx.drawImage(video, 0, 0);
 
-        // Convert to base64 JPEG (quality 0.7 for speed)
         const frameData = captureCanvas.toDataURL('image/jpeg', 0.7);
 
-        // Send to backend for YOLOv9 inference
         try {
             const resp = await fetch('/api/detect-frame', {
                 method: 'POST',
@@ -182,10 +243,7 @@ function startDetectionLoop() {
             if (!resp.ok) return;
             const result = await resp.json();
 
-            // Draw bounding boxes on overlay
             drawDetections(result.detections, video.videoWidth, video.videoHeight);
-
-            // Update inference badge
             document.getElementById('m-inference').textContent = result.inference_ms;
 
             // FPS counter
@@ -196,10 +254,9 @@ function startDetectionLoop() {
                 frameCount = 0;
                 lastFpsTime = now;
                 document.getElementById('badge-fps').textContent =
-                    `FPS: ${fps} | Inference: ${result.inference_ms} ms`;
+                    `FPS: ${fps} | ${result.inference_ms}ms`;
             }
 
-            // If detections found, trigger warning
             if (result.saved && result.saved.length > 0) {
                 result.saved.forEach(det => triggerWarning(det));
             }
@@ -214,7 +271,6 @@ function stopDetectionLoop() {
         clearInterval(detectionLoop);
         detectionLoop = null;
     }
-    // Clear overlay
     const overlay = document.getElementById('camera-overlay');
     const ctx = overlay.getContext('2d');
     ctx.clearRect(0, 0, overlay.width, overlay.height);
@@ -236,12 +292,10 @@ function drawDetections(detections, vw, vh) {
         const { x1, y1, x2, y2, confidence, class: cls } = det;
         const w = x2 - x1, h = y2 - y1;
 
-        // Color by confidence
         let color = '#34C759';
         if (confidence > 0.7) color = '#FF3B30';
         else if (confidence > 0.4) color = '#FF9F0A';
 
-        // Main box
         ctx.strokeStyle = color;
         ctx.lineWidth = 3;
         ctx.strokeRect(x1, y1, w, h);
@@ -250,22 +304,17 @@ function drawDetections(detections, vw, vh) {
         const cornerLen = Math.min(w, h) * 0.25;
         ctx.strokeStyle = '#FFFFFF';
         ctx.lineWidth = 2;
-        // TL
         ctx.beginPath(); ctx.moveTo(x1, y1 + cornerLen); ctx.lineTo(x1, y1); ctx.lineTo(x1 + cornerLen, y1); ctx.stroke();
-        // TR
         ctx.beginPath(); ctx.moveTo(x2 - cornerLen, y1); ctx.lineTo(x2, y1); ctx.lineTo(x2, y1 + cornerLen); ctx.stroke();
-        // BL
         ctx.beginPath(); ctx.moveTo(x1, y2 - cornerLen); ctx.lineTo(x1, y2); ctx.lineTo(x1 + cornerLen, y2); ctx.stroke();
-        // BR
         ctx.beginPath(); ctx.moveTo(x2 - cornerLen, y2); ctx.lineTo(x2, y2); ctx.lineTo(x2, y2 - cornerLen); ctx.stroke();
 
-        // Label background
+        // Label
         const label = `YOLOv9: ${cls} ${(confidence * 100).toFixed(0)}%`;
         ctx.font = 'bold 14px Outfit';
         const tw = ctx.measureText(label).width;
         ctx.fillStyle = color;
         ctx.fillRect(x1, y1 - 22, tw + 12, 22);
-        // Label text
         ctx.fillStyle = '#0A0D12';
         ctx.fillText(label, x1 + 6, y1 - 6);
     });
@@ -275,16 +324,15 @@ function drawDetections(detections, vw, vh) {
 // 5. WARNING SYSTEM — Visual + Audio TTS
 // ═══════════════════════════════════════════════
 function triggerWarning(det) {
-    const card = document.getElementById('warning-card');
     const flash = document.getElementById('flash-overlay');
     const isMedium = det.severity === 'Medium';
     const isLow = det.severity === 'Low';
 
-    // Flash screen border
+    // Flash screen
     flash.className = 'flash-overlay ' + (isLow ? '' : isMedium ? 'warning' : 'danger');
     setTimeout(() => { flash.className = 'flash-overlay'; }, 2000);
 
-    // Warning card content
+    // Warning card
     document.getElementById('warning-content').innerHTML = `
         <div class="warning-danger ${isMedium ? 'medium' : ''}">
             <h3>⚠️ LUBANG TERDETEKSI!</h3>
@@ -300,8 +348,15 @@ function triggerWarning(det) {
         </div>
     `;
 
-    // Voice alert (TTS)
+    // Voice alert
     speakAlert(det.severity, det.diameter, det.depth);
+
+    // Vibrate device
+    if ('vibrate' in navigator) {
+        if (det.severity === 'High') navigator.vibrate([300, 100, 300, 100, 500]);
+        else if (det.severity === 'Medium') navigator.vibrate([200, 100, 200]);
+        else navigator.vibrate(150);
+    }
 
     // Reset after 5s
     setTimeout(resetWarning, 5000);
@@ -311,8 +366,7 @@ function resetWarning() {
     document.getElementById('warning-content').innerHTML = `
         <div class="warning-safe">
             <div class="safe-icon">✓</div>
-            <h3>Jalur Aman</h3>
-            <p>Tidak ada lubang terdeteksi</p>
+            <span>Jalur Aman</span>
         </div>
     `;
 }
@@ -336,12 +390,13 @@ function speakAlert(severity, diameter, depth) {
     window.speechSynthesis.speak(utt);
 }
 
-
 // ═══════════════════════════════════════════════
-// 7. CHART.JS
+// 6. CHART.JS
 // ═══════════════════════════════════════════════
 function initChart() {
-    sevChart = new Chart(document.getElementById('severityChart').getContext('2d'), {
+    const canvas = document.getElementById('severityChart');
+    if (!canvas) return;
+    sevChart = new Chart(canvas.getContext('2d'), {
         type: 'doughnut',
         data: {
             labels: ['Rendah', 'Sedang', 'Tinggi'],
@@ -360,52 +415,47 @@ function refreshStats() {
     fetch('/api/stats').then(r => r.json()).then(s => {
         document.getElementById('m-total').textContent = s.total;
         document.getElementById('m-high').textContent = s.severity_distribution.High || 0;
-        sevChart.data.datasets[0].data = [
-            s.severity_distribution.Low || 0,
-            s.severity_distribution.Medium || 0,
-            s.severity_distribution.High || 0
-        ];
-        sevChart.update();
+        if (sevChart) {
+            sevChart.data.datasets[0].data = [
+                s.severity_distribution.Low || 0,
+                s.severity_distribution.Medium || 0,
+                s.severity_distribution.High || 0
+            ];
+            sevChart.update();
+        }
     });
 }
 
 // ═══════════════════════════════════════════════
-// 8. LOG TABLE — with Google Maps links
+// 7. LOG TABLE — Mobile-friendly with Google Maps
 // ═══════════════════════════════════════════════
 function addToLogTable(det) {
     const tbody = document.getElementById('log-body');
     const tr = document.createElement('tr');
+    const timeShort = det.timestamp ? det.timestamp.split(' ')[1] || det.timestamp : '--';
     tr.innerHTML = `
         <td>${det.id}</td>
-        <td>${det.timestamp}</td>
-        <td style="font-family:var(--mono);font-size:.75rem">${det.latitude.toFixed(6)}, ${det.longitude.toFixed(6)}</td>
+        <td>${timeShort}</td>
         <td>${det.speed} km/h</td>
-        <td>${det.diameter} cm</td>
-        <td>${det.depth} cm</td>
-        <td>${(det.confidence * 100).toFixed(0)}%</td>
         <td><span class="badge-sev ${det.severity.toLowerCase()}">${det.severity}</span></td>
-        <td>${det.snapshot_path ? `<img src="${det.snapshot_path}" class="snap-thumb" onclick="window.open('${det.snapshot_path}','_blank')" alt="snap">` : '-'}</td>
         <td><a href="${det.google_maps_url}" target="_blank" class="gmaps-link">📍 Maps</a></td>
     `;
-    // Prepend newest on top
     if (tbody.firstChild) tbody.insertBefore(tr, tbody.firstChild);
     else tbody.appendChild(tr);
 }
 
 // ═══════════════════════════════════════════════
-// 9. LOAD EXISTING DATA
+// 8. LOAD EXISTING DATA
 // ═══════════════════════════════════════════════
 function loadExistingData() {
     fetch('/api/potholes').then(r => r.json()).then(data => {
-        data.forEach(p => {
-            addToLogTable(p);
-        });
+        data.forEach(p => addToLogTable(p));
     });
     refreshStats();
 }
 
 // ═══════════════════════════════════════════════
-// 10. SSE — Real-time events from server
+// 9. SSE — Real-time events from server
 // ═══════════════════════════════════════════════
 function setupSSE() {
     eventSource = new EventSource('/stream');
@@ -417,48 +467,56 @@ function setupSSE() {
 }
 
 // ═══════════════════════════════════════════════
-// 11. BUTTONS & CONTROLS
+// 10. STOP SYSTEM
 // ═══════════════════════════════════════════════
-function setupButtons() {
-    document.getElementById('btn-start').addEventListener('click', startSystem);
-    document.getElementById('btn-stop').addEventListener('click', stopSystem);
-}
-
-async function startSystem() {
-    if (isRunning) return;
-    
-    document.getElementById('btn-start').style.display = 'none';
-    document.getElementById('btn-stop').style.display = 'inline-block';
-
-    try {
-        // Enforce GPS location first
-        await startGPS();
-        
-        // Once GPS is obtained, start camera
-        const camOk = await startCamera();
-        if (camOk) {
-            isRunning = true;
-            // Wait a moment for camera to stabilize
-            setTimeout(() => startDetectionLoop(), 1000);
-        } else {
-            stopSystem(); // Revert UI if camera fails
-        }
-    } catch (err) {
-        // GPS failed or denied
-        stopSystem();
-    }
-}
-
 function stopSystem() {
     isRunning = false;
     stopDetectionLoop();
     stopCamera();
     stopGPS();
 
-    document.getElementById('btn-start').style.display = 'inline-block';
-    document.getElementById('btn-stop').style.display = 'none';
-    document.getElementById('hud-status').innerHTML = 'Sistem dihentikan. Tekan <strong>"Mulai Deteksi"</strong> untuk mengaktifkan kembali.';
-    document.getElementById('hud-speed-val').textContent = '0';
+    // Go back to splash screen
+    document.getElementById('app-container').style.display = 'none';
+    document.getElementById('splash-screen').style.display = 'flex';
+    const btn = document.getElementById('btn-launch');
+    btn.innerHTML = '<span class="btn-icon">▶</span><span>Mulai Deteksi</span>';
+    btn.disabled = false;
+}
+
+// ═══════════════════════════════════════════════
+// 11. BOTTOM SHEET (swipe toggle)
+// ═══════════════════════════════════════════════
+function setupBottomSheet() {
+    const sheet = document.getElementById('bottom-sheet');
+    const handle = document.getElementById('sheet-handle');
+    if (!sheet || !handle) return;
+
+    let expanded = false;
+
+    handle.addEventListener('click', () => {
+        expanded = !expanded;
+        sheet.classList.toggle('expanded', expanded);
+    });
+
+    // Swipe gesture
+    let startY = 0;
+    handle.addEventListener('touchstart', (e) => {
+        startY = e.touches[0].clientY;
+    }, { passive: true });
+
+    handle.addEventListener('touchend', (e) => {
+        const endY = e.changedTouches[0].clientY;
+        const diff = startY - endY;
+        if (diff > 40) {
+            // Swipe up → expand
+            expanded = true;
+            sheet.classList.add('expanded');
+        } else if (diff < -40) {
+            // Swipe down → collapse
+            expanded = false;
+            sheet.classList.remove('expanded');
+        }
+    }, { passive: true });
 }
 
 // ═══════════════════════════════════════════════
@@ -466,6 +524,7 @@ function stopSystem() {
 // ═══════════════════════════════════════════════
 function updatePill(id, text, dotClass) {
     const pill = document.getElementById(id);
+    if (!pill) return;
     const dot = pill.querySelector('.dot');
     pill.childNodes[pill.childNodes.length - 1].textContent = ' ' + text;
     if (dot) {
@@ -473,15 +532,6 @@ function updatePill(id, text, dotClass) {
         if (dotClass) dot.classList.add(dotClass);
     }
 }
-
-function startClock() {
-    setInterval(() => {
-        const now = new Date();
-        document.getElementById('clock').textContent = now.toLocaleTimeString('id-ID');
-    }, 1000);
-}
-
-
 
 // Export data as JSON
 function exportJSON() {
@@ -498,7 +548,7 @@ function exportJSON() {
 
 // Clear all data
 function clearAll() {
-    if (!confirm('Hapus SEMUA data deteksi lubang? Data tidak bisa dikembalikan.')) return;
+    if (!confirm('Hapus SEMUA data deteksi lubang?')) return;
     fetch('/api/potholes').then(r => r.json()).then(data => {
         const promises = data.map(p => fetch(`/api/potholes/${p.id}`, { method: 'DELETE' }));
         Promise.all(promises).then(() => {

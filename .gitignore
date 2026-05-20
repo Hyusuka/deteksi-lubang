@@ -1,0 +1,28 @@
+# Environment variables
+.env
+
+# Large model weights
+*.pt
+*.onnx
+*.engine
+
+# Database files
+*.db
+*.sqlite3
+
+# Python caches
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+
+# Local snapshots and uploads
+static/snapshots/*
+!static/snapshots/.gitkeep
+
+# IDE and System files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
