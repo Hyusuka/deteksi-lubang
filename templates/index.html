@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Sistem Deteksi Lubang Jalan Real-Time YOLOv9 - Kamera Live, GPS Real, Kecepatan Motor Otomatis">
+    <title>YOLOv9 Pothole Detection — Live Camera & GPS</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+    <!-- ═══════════ HEADER ═══════════ -->
+    <header class="main-header">
+        <div class="logo-area">
+            <span class="logo-icon">🛣️</span>
+            <div class="logo-text">
+                <h1>YOLOv9 Pothole Detector</h1>
+                <p>Real-Time Camera &bull; Live GPS</p>
+            </div>
+        </div>
+        <div class="header-controls">
+            <div class="status-pill" id="pill-camera"><span class="dot red"></span> Kamera OFF</div>
+            <div class="status-pill" id="pill-gps"><span class="dot red"></span> GPS OFF</div>
+            <div class="status-pill" id="pill-speed"><span class="dot"></span> 0 km/h</div>
+            <button class="btn-glow" id="btn-start">▶ Mulai Deteksi</button>
+            <button class="btn-danger" id="btn-stop" style="display:none;">■ Stop</button>
+        </div>
+    </header>
+
+    <!-- ═══════════ MAIN ═══════════ -->
+    <main class="app-grid">
+        <!-- ──── LEFT: LIVE CAMERA ──── -->
+        <section class="panel camera-panel">
+            <div class="panel-head">
+                <h2>📷 Live Camera Feed</h2>
+                <span class="badge" id="badge-fps">FPS: -- | Inference: -- ms</span>
+            </div>
+            <div class="camera-viewport">
+                <video id="camera-video" autoplay playsinline muted></video>
+                <canvas id="camera-overlay"></canvas>
+                <!-- Warning flash overlay -->
+                <div class="flash-overlay" id="flash-overlay"></div>
+                <!-- HUD overlay -->
+                <div class="hud-top-left" id="hud-gps">
+                    <div class="hud-label">GPS</div>
+                    <div class="hud-value" id="hud-lat">Lat: --</div>
+                    <div class="hud-value" id="hud-lon">Lon: --</div>
+                </div>
+                <div class="hud-top-right" id="hud-speed-display">
+                    <div class="speed-number" id="hud-speed-val">0</div>
+                    <div class="speed-unit">km/h</div>
+                </div>
+                <div class="hud-bottom-center" id="hud-status">
+                    Tekan <strong>"Mulai Deteksi"</strong> untuk mengaktifkan kamera & GPS
+                </div>
+            </div>
+        </section>
+
+        <!-- ──── RIGHT: WARNING + INFO ──── -->
+        <section class="panel info-panel">
+            <!-- Warning System -->
+            <div class="card warning-card" id="warning-card">
+                <div class="warning-safe" id="warning-content">
+                    <div class="safe-icon">✓</div>
+                    <h3>Jalur Aman</h3>
+                    <p>Tidak ada lubang terdeteksi</p>
+                </div>
+            </div>
+
+            <!-- Metrics -->
+            <div class="metrics-row">
+                <div class="metric-box">
+                    <span class="metric-num" id="m-total">0</span>
+                    <span class="metric-lbl">Total Deteksi</span>
+                </div>
+                <div class="metric-box">
+                    <span class="metric-num" id="m-high">0</span>
+                    <span class="metric-lbl">Bahaya Tinggi</span>
+                </div>
+                <div class="metric-box">
+                    <span class="metric-num" id="m-speed">0</span>
+                    <span class="metric-lbl">Kecepatan (km/h)</span>
+                </div>
+                <div class="metric-box">
+                    <span class="metric-num" id="m-inference">--</span>
+                    <span class="metric-lbl">Inference (ms)</span>
+                </div>
+            </div>
+
+
+            <!-- Severity Chart -->
+            <div class="card chart-card">
+                <div class="card-head"><h3>📊 Statistik Keparahan</h3></div>
+                <div class="chart-wrap">
+                    <canvas id="severityChart"></canvas>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- ═══════════ BOTTOM: DETECTION LOG TABLE ═══════════ -->
+    <section class="panel log-section">
+        <div class="panel-head">
+            <h2>📋 Log Deteksi Lubang — Database</h2>
+            <div style="display:flex; gap:10px;">
+                <button class="btn-sm" onclick="exportJSON()">📥 Ekspor JSON</button>
+                <button class="btn-sm btn-sm-danger" onclick="clearAll()">🗑️ Hapus Semua</button>
+            </div>
+        </div>
+        <div class="table-scroll">
+            <table class="log-table" id="log-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Waktu</th>
+                        <th>Koordinat</th>
+                        <th>Kecepatan</th>
+                        <th>Diameter</th>
+                        <th>Kedalaman</th>
+                        <th>Confidence</th>
+                        <th>Severity</th>
+                        <th>Snapshot</th>
+                        <th>📍 Google Maps</th>
+                    </tr>
+                </thead>
+                <tbody id="log-body"></tbody>
+            </table>
+        </div>
+    </section>
+
+
+    <footer class="main-footer">
+        <p>© 2026 Universitas Gunadarma — Skripsi Mohd Zimar Alwan (50422917)</p>
+        <span id="clock">--:--:--</span>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="/static/js/app.js"></script>
+</body>
+</html>
