@@ -1,3 +1,12 @@
+---
+title: Pothole Detector
+emoji: 🕳️
+colorFrom: blue
+colorTo: indigo
+sdk: docker
+pinned: false
+---
+
 # Pothole Detection Early Warning System 🕳️📸
 
 Sistem pendeteksi lubang jalan raya secara *real-time* berbasis **YOLOv9**, **Flask**, dan **Supabase**. Aplikasi ini didesain agar dapat diakses menggunakan *smartphone* (sebagai *Progressive Web App* / PWA) yang dipasang pada dasbor motor untuk mendeteksi lubang jalan raya, mencatat koordinat GPS, kecepatan, dan mengunggah buktinya ke database Cloud.
