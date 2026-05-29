@@ -171,6 +171,54 @@
         </div>
     </div>
 
+    <!-- ═══════════ DETAILED VIEW MODAL ═══════════ -->
+    <div id="pothole-modal" class="modal-mobile" style="display:none;">
+        <div class="modal-mobile-content">
+            <div class="modal-mobile-header">
+                <h3>🔍 Detail Temuan Lubang</h3>
+                <button class="modal-close-btn" onclick="closePotholeModal()">✕</button>
+            </div>
+            <div class="modal-mobile-body">
+                <div class="modal-image-wrapper">
+                    <img id="modal-img" src="" alt="Snapshot Lubang">
+                </div>
+                <div class="modal-stats-grid">
+                    <div class="modal-stat-card">
+                        <span class="m-lbl">Tingkat Bahaya</span>
+                        <span class="m-val" id="modal-severity">--</span>
+                    </div>
+                    <div class="modal-stat-card">
+                        <span class="m-lbl">Lebar Estimasi</span>
+                        <span class="m-val" id="modal-diameter">-- cm</span>
+                    </div>
+                    <div class="modal-stat-card">
+                        <span class="m-lbl">Kedalaman Estimasi</span>
+                        <span class="m-val" id="modal-depth">-- cm</span>
+                    </div>
+                    <div class="modal-stat-card">
+                        <span class="m-lbl">Volume Estimasi</span>
+                        <span class="m-val" id="modal-volume">-- Liter</span>
+                    </div>
+                    <div class="modal-stat-card full-width">
+                        <span class="m-lbl">Waktu Deteksi</span>
+                        <span class="m-val-sub" id="modal-time">--</span>
+                    </div>
+                    <div class="modal-stat-card full-width">
+                        <span class="m-lbl">Kecepatan Kendaraan</span>
+                        <span class="m-val-sub" id="modal-speed">-- km/h</span>
+                    </div>
+                    <div class="modal-stat-card full-width">
+                        <span class="m-lbl">Titik Koordinat</span>
+                        <span class="m-val-sub" id="modal-coords">--</span>
+                    </div>
+                </div>
+                <a id="modal-maps-btn" href="#" target="_blank" class="modal-btn-primary">
+                    📍 Buka di Google Maps
+                </a>
+            </div>
+        </div>
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="/static/js/app.js"></script>
 </body>

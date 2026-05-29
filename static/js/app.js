@@ -334,16 +334,19 @@ function triggerWarning(det) {
     setTimeout(() => { flash.className = 'flash-overlay'; }, 2000);
 
     // Warning card
+    const radius = det.diameter / 2;
+    const vol = det.volume || Math.max(0.1, Math.round((0.5 * 3.14159 * Math.pow(radius, 2) * det.depth / 1000) * 10) / 10);
+
     document.getElementById('warning-content').innerHTML = `
         <div class="warning-danger ${isMedium ? 'medium' : ''}">
             <h3>⚠️ LUBANG TERDETEKSI!</h3>
             <p>${det.severity === 'High' ? 'BAHAYA TINGGI — Kurangi kecepatan segera!' :
                  det.severity === 'Medium' ? 'Waspada — Lubang sedang di depan.' :
                  'Lubang kecil terdeteksi.'}</p>
-            <div class="warn-grid">
+            <div class="warn-grid" style="grid-template-columns: repeat(2, 1fr);">
                 <div class="warn-item"><span class="wl">Diameter</span><span class="wv" style="color:var(--warn)">${det.diameter} cm</span></div>
                 <div class="warn-item"><span class="wl">Kedalaman</span><span class="wv" style="color:var(--danger)">${det.depth} cm</span></div>
-                <div class="warn-item"><span class="wl">Confidence</span><span class="wv" style="color:var(--primary)">${(det.confidence * 100).toFixed(0)}%</span></div>
+                <div class="warn-item"><span class="wl">Volume</span><span class="wv" style="color:var(--cyan)">${vol} L</span></div>
                 <div class="warn-item"><span class="wl">Kecepatan</span><span class="wv">${det.speed} km/h</span></div>
             </div>
         </div>
@@ -433,17 +436,59 @@ function refreshStats() {
 function addToLogTable(det) {
     const tbody = document.getElementById('log-body');
     const tr = document.createElement('tr');
+    tr.style.cursor = 'pointer';
+    tr.addEventListener('click', (e) => {
+        // Jangan buka modal jika mengklik link Google Maps langsung
+        if (!e.target.classList.contains('gmaps-link')) {
+            openPotholeModal(det);
+        }
+    });
+
     const timeShort = det.timestamp ? det.timestamp.split(' ')[1] || det.timestamp : '--';
     tr.innerHTML = `
         <td>${det.id}</td>
         <td>${timeShort}</td>
         <td>${det.speed} km/h</td>
         <td><span class="badge-sev ${det.severity.toLowerCase()}">${det.severity}</span></td>
-        <td><a href="${det.google_maps_url}" target="_blank" class="gmaps-link">📍 Maps</a></td>
+        <td><a href="${det.google_maps_url}" target="_blank" class="gmaps-link" onclick="event.stopPropagation();">📍 Maps</a></td>
     `;
     if (tbody.firstChild) tbody.insertBefore(tr, tbody.firstChild);
     else tbody.appendChild(tr);
 }
+
+// ═══════════════════════════════════════════════
+// LIGHTBOX / PHOTO VIEWER MODAL CONTROLS
+// ═══════════════════════════════════════════════
+function openPotholeModal(det) {
+    document.getElementById('modal-img').src = det.snapshot_path || '';
+    
+    const sevBadge = document.getElementById('modal-severity');
+    sevBadge.textContent = det.severity;
+    sevBadge.className = 'm-val badge-sev ' + det.severity.toLowerCase();
+    
+    document.getElementById('modal-diameter').textContent = `${det.diameter} cm`;
+    document.getElementById('modal-depth').textContent = `${det.depth} cm`;
+    
+    // Hitung volume jika belum ada di objek det (sebagai fallback dinamis)
+    const radius = det.diameter / 2;
+    const vol = det.volume || Math.max(0.1, Math.round((0.5 * 3.14159 * Math.pow(radius, 2) * det.depth / 1000) * 10) / 10);
+    document.getElementById('modal-volume').textContent = `${vol} Liter`;
+    
+    document.getElementById('modal-time').textContent = det.timestamp || '--';
+    document.getElementById('modal-speed').textContent = `${det.speed} km/h`;
+    
+    const lat = typeof det.latitude === 'number' ? det.latitude.toFixed(6) : det.latitude;
+    const lon = typeof det.longitude === 'number' ? det.longitude.toFixed(6) : det.longitude;
+    document.getElementById('modal-coords').textContent = `${lat}, ${lon}`;
+    document.getElementById('modal-maps-btn').href = det.google_maps_url || '#';
+    
+    document.getElementById('pothole-modal').style.display = 'flex';
+}
+
+function closePotholeModal() {
+    document.getElementById('pothole-modal').style.display = 'none';
+}
+
 
 // ═══════════════════════════════════════════════
 // 8. LOAD EXISTING DATA

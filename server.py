@@ -162,8 +162,43 @@ def _ensure_db():
     return _db_available
 
 # ──────────────────────────────────────────────
-# Severity classification based on 3-Class YOLO
+# Severity, Dimension, and Volume Estimation Helper
 # ──────────────────────────────────────────────
+def calculate_volume(diameter, depth):
+    # Menghitung volume dalam Liter menggunakan model semi-ellipsoid (0.5 * pi * r^2 * h)
+    radius = diameter / 2.0
+    vol_cm3 = 0.5 * 3.14159 * (radius ** 2) * depth
+    vol_liters = round(vol_cm3 / 1000.0, 1)
+    return max(0.1, vol_liters)
+
+def estimate_pothole_dimensions(bw, fw, cls_name):
+    # Estimasi diameter fisik dalam cm (lebar jalan di dasar frame dianggap 200 cm)
+    diameter_cm = round((bw / fw) * 200.0, 1)
+    diameter_cm = max(5.0, diameter_cm) # minimal 5cm
+    
+    # Estimasi kedalaman fisik dalam cm
+    if cls_name == 'lubang_besar':
+        base_ratio = 0.25
+    elif cls_name == 'lubang_kecil':
+        base_ratio = 0.12
+    else: # 'lubang_sedang' atau 'pothole'
+        base_ratio = 0.18
+        
+    depth_cm = round(diameter_cm * base_ratio, 1)
+    depth_cm = max(2.0, min(25.0, depth_cm)) # batas realistis 2cm - 25cm
+    
+    # Severity classification berdasarkan kedalaman
+    if depth_cm >= 12.0:
+        severity = 'High'
+    elif depth_cm >= 6.0:
+        severity = 'Medium'
+    else:
+        severity = 'Low'
+        
+    volume_liters = calculate_volume(diameter_cm, depth_cm)
+    
+    return severity, diameter_cm, depth_cm, volume_liters
+
 def classify_severity_from_class(cls_name):
     if cls_name == 'lubang_besar':
         return 'High', 15.0
@@ -173,6 +208,7 @@ def classify_severity_from_class(cls_name):
         return 'Low', 3.0
     else:
         return 'Medium', 5.0
+
 
 # ──────────────────────────────────────────────
 # Road Context Validator
@@ -486,11 +522,11 @@ def detect_frame():
 
     for det in detections:
         cls_name = det['class']
-        severity, est_depth = classify_severity_from_class(cls_name)
+        bw = det['x2'] - det['x1']
+        confidence = det['confidence']
 
-        bw          = det['x2'] - det['x1']
-        est_diameter = round((bw / fw) * 100, 1)
-        confidence  = det['confidence']
+        # Gunakan estimasi dimensi fisik & volume dinamis YOLOv9/v8
+        severity, diameter_cm, depth_cm, volume_liters = estimate_pothole_dimensions(bw, fw, cls_name)
 
         # Cek cooldown
         if cooldown_aktif:
@@ -524,8 +560,8 @@ def detect_frame():
                     "latitude": latitude,
                     "longitude": longitude,
                     "speed": speed_kmh,
-                    "diameter": est_diameter,
-                    "depth": est_depth,
+                    "diameter": diameter_cm,
+                    "depth": depth_cm,
                     "confidence": float(confidence),
                     "severity": severity,
                     "snapshot_path": web_snap_path,
@@ -546,8 +582,9 @@ def detect_frame():
             'latitude':       latitude,
             'longitude':      longitude,
             'speed':          speed_kmh,
-            'diameter':       est_diameter,
-            'depth':          est_depth,
+            'diameter':       diameter_cm,
+            'depth':          depth_cm,
+            'volume':         volume_liters,
             'confidence':     confidence,
             'severity':       severity,
             'snapshot_path':  web_snap_path,
@@ -706,27 +743,12 @@ def get_potholes():
         return jsonify([])
     try:
         res = _supabase_client.table("potholes").select("*").order("id", desc=True).execute()
-        return jsonify(res.data)
-    except Exception as e:
-        logging.warning(f"Gagal fetch potholes: {e}")
-        return jsonify([])
-    try:
-        res = _supabase_client.table("potholes").select("*").order("id", desc=True).execute()
-        return jsonify(res.data)
-    except Exception as e:
-        logging.warning(f"Gagal fetch potholes: {e}")
-        return jsonify([])
-    try:
-        conn = get_db()
-        with conn.cursor() as cur:
-            cur.execute("SELECT * FROM potholes ORDER BY id DESC")
-            rows = cur.fetchall()
-        conn.close()
-        # Ubah datetime ke string agar bisa di-JSON-kan
-        for r in rows:
-            if hasattr(r.get('timestamp'), 'strftime'):
-                r['timestamp'] = r['timestamp'].strftime('%Y-%m-%d %H:%M:%S')
-        return jsonify(rows)
+        data = res.data or []
+        for r in data:
+            dia = r.get('diameter', 0.0) or 0.0
+            dep = r.get('depth', 0.0) or 0.0
+            r['volume'] = calculate_volume(dia, dep)
+        return jsonify(data)
     except Exception as e:
         logging.warning(f"Gagal fetch potholes: {e}")
         return jsonify([])
