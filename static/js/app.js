@@ -687,7 +687,12 @@ async function runTestDetect(dataUrl) {
     }
 
     if (!response.ok) {
-        resultBox.textContent = `❌ Server error: ${response.status} ${response.statusText}`;
+        try {
+            const errData = await response.json();
+            resultBox.textContent = `❌ Server error: ${response.status}\nDetail: ${errData.message || errData.error}`;
+        } catch (e) {
+            resultBox.textContent = `❌ Server error: ${response.status} ${response.statusText}`;
+        }
         return;
     }
 
