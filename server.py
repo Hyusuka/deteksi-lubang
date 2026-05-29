@@ -85,8 +85,8 @@ def load_model_lazy():
 # Filter Konfigurasi — Konteks Jalan Raya
 # Semua nilai bisa di-override via .env
 # ──────────────────────────────────────────────
-CONF_THRESHOLD      = float(os.environ.get('CONF_THRESHOLD',      '0.40'))  # Keyakinan minimum (dinaikkan dari 0.25)
-ROI_BOTTOM_FRAC     = float(os.environ.get('ROI_BOTTOM_FRAC',     '0.55'))  # Objek harus ada di X% bawah frame
+CONF_THRESHOLD      = float(os.environ.get('CONF_THRESHOLD',      '0.25'))  # Keyakinan minimum
+ROI_BOTTOM_FRAC     = float(os.environ.get('ROI_BOTTOM_FRAC',     '0.35'))  # Objek harus ada di X% bawah frame
 MIN_ASPECT_RATIO    = float(os.environ.get('MIN_ASPECT_RATIO',    '0.25'))  # lebar/tinggi min (lubang jalan cenderung lebar)
 MAX_ASPECT_RATIO    = float(os.environ.get('MAX_ASPECT_RATIO',    '5.0'))   # lebar/tinggi maks
 MIN_BOX_AREA_FRAC   = float(os.environ.get('MIN_BOX_AREA_FRAC',   '0.002')) # Minimum luas kotak relatif terhadap frame
@@ -612,6 +612,12 @@ def get_potholes():
         logging.warning(f"Gagal fetch potholes: {e}")
         return jsonify([])
     try:
+        res = _supabase_client.table("potholes").select("*").order("id", desc=True).execute()
+        return jsonify(res.data)
+    except Exception as e:
+        logging.warning(f"Gagal fetch potholes: {e}")
+        return jsonify([])
+    try:
         conn = get_db()
         with conn.cursor() as cur:
             cur.execute("SELECT * FROM potholes ORDER BY id DESC")
@@ -638,6 +644,48 @@ def get_stats():
         'trend':        []
     }
     if not _ensure_db():
+        return jsonify(empty)
+    try:
+        res = _supabase_client.table("potholes").select("*").execute()
+        rows = res.data
+        if not rows:
+            return jsonify(empty)
+        
+        total = len(rows)
+        sev = {'Low': 0, 'Medium': 0, 'High': 0}
+        sum_dia = 0
+        sum_dep = 0
+        sum_spd = 0
+        
+        # Simple trend aggregation by day
+        from collections import defaultdict
+        trend_dict = defaultdict(int)
+
+        for r in rows:
+            sev_val = r.get("severity", "Low")
+            if sev_val in sev: sev[sev_val] += 1
+            else: sev["Low"] += 1
+            
+            sum_dia += r.get("diameter", 0)
+            sum_dep += r.get("depth", 0)
+            sum_spd += r.get("speed", 0)
+            
+            date_str = str(r.get("timestamp", ""))[:10]
+            if date_str:
+                trend_dict[date_str] += 1
+                
+        trend = [{"date": k, "count": v} for k, v in sorted(trend_dict.items())][-7:]
+
+        return jsonify({
+            'total':                 total,
+            'severity_distribution': sev,
+            'avg_diameter':          round(sum_dia/total, 1) if total else 0,
+            'avg_depth':             round(sum_dep/total, 1) if total else 0,
+            'avg_speed':             round(sum_spd/total, 1) if total else 0,
+            'trend':                 trend
+        })
+    except Exception as e:
+        logging.warning(f"Gagal fetch stats: {e}")
         return jsonify(empty)
     try:
         res = _supabase_client.table("potholes").select("*").execute()
