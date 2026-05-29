@@ -3,42 +3,101 @@ import json
 import time
 import base64
 import uuid
-import numpy as np
-import cv2
+import queue
+import logging
 from flask import Flask, render_template, jsonify, request, Response, send_from_directory
 from dotenv import load_dotenv
 
+# ⚠️ numpy dan cv2 SENGAJA tidak diimport di sini.
+# Mereka diimport di dalam load_model_lazy() pada request pertama.
+# Tujuan: startup Python selesai < 0.1 detik → mencegah 503 di Phusion Passenger.
+np = None
+cv2 = None
+
 load_dotenv()
 
+# ──────────────────────────────────────────────
+# Konfigurasi Logging Ke File 'app.log'
+# ──────────────────────────────────────────────
+log_path = os.path.join(os.path.dirname(__file__), 'app.log')
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s [%(levelname)s] %(message)s',
+    handlers=[
+        logging.FileHandler(log_path, encoding="utf-8"),
+        logging.StreamHandler()
+    ]
+)
+
 app = Flask(__name__, template_folder='templates', static_folder='static')
-DATABASE = 'potholes.db'
 SNAPSHOT_DIR = os.path.join('static', 'snapshots')
 
-# Ensure snapshot directory exists
+# Pastikan folder snapshot ada
 os.makedirs(SNAPSHOT_DIR, exist_ok=True)
 
 # ──────────────────────────────────────────────
 # YOLOv9 Model Loader
 # ──────────────────────────────────────────────
-YOLO_MODEL = None
-try:
-    from ultralytics import YOLO
-    MODEL_PATH = os.environ.get('YOLO_MODEL', 'yolov9t.pt')
-    print(f"[INFO] Loading YOLOv9 model '{MODEL_PATH}'...")
-    YOLO_MODEL = YOLO(MODEL_PATH)
-    # Warmup with a dummy frame
-    dummy = np.zeros((640, 640, 3), dtype=np.uint8)
-    YOLO_MODEL(dummy, verbose=False)
-    print("[INFO] YOLOv9 model loaded & warmed up successfully.")
-except Exception as e:
-    print(f"[WARN] Could not load YOLOv9 model: {e}")
-    print("[WARN] Detection will use a fallback heuristic (dark-region detector).")
+
+YOLO_MODEL      = None
+_model_loaded   = False
+
+MODEL_PATH = os.environ.get('YOLO_MODEL', 'yolov9t.pt')
+
+def load_model_lazy():
+    global YOLO_MODEL, _model_loaded, np, cv2
+    if _model_loaded:
+        return
+
+    # Import numpy dan cv2 sekarang (lazy) — memerlukan ~1-2 detik, tapi tidak memblokir startup
+    if np is None:
+        import numpy as _np
+        import builtins
+        builtins.__dict__['np']  = _np   # buat tersedia secara global
+        globals()['np']  = _np
+    if cv2 is None:
+        import cv2 as _cv2
+        import builtins
+        builtins.__dict__['cv2'] = _cv2
+        globals()['cv2'] = _cv2
+
+    logging.info("Memulai pemuatan model YOLO (Ultralytics) secara LAZY...")
+
+    try:
+        from ultralytics import YOLO
+        logging.info(f"Loading YOLOv9 via ultralytics: {MODEL_PATH}")
+        YOLO_MODEL = YOLO(MODEL_PATH)
+        dummy = np.zeros((640, 640, 3), dtype=np.uint8)
+        YOLO_MODEL(dummy, verbose=False)
+        logging.info("YOLOv9 model (ultralytics) loaded & warmed up successfully.")
+    except ImportError:
+        logging.warning("ultralytics tidak terinstall.")
+    except Exception as e:
+        logging.warning(f"Gagal load ultralytics model: {e}")
+
+    if YOLO_MODEL is None:
+        logging.warning("Tidak ada YOLO model yang berhasil dimuat — menggunakan Fallback OpenCV Detector.")
+    
+    _model_loaded = True
+
+
+# ──────────────────────────────────────────────
+# Filter Konfigurasi — Konteks Jalan Raya
+# Semua nilai bisa di-override via .env
+# ──────────────────────────────────────────────
+CONF_THRESHOLD      = float(os.environ.get('CONF_THRESHOLD',      '0.40'))  # Keyakinan minimum (dinaikkan dari 0.25)
+ROI_BOTTOM_FRAC     = float(os.environ.get('ROI_BOTTOM_FRAC',     '0.55'))  # Objek harus ada di X% bawah frame
+MIN_ASPECT_RATIO    = float(os.environ.get('MIN_ASPECT_RATIO',    '0.25'))  # lebar/tinggi min (lubang jalan cenderung lebar)
+MAX_ASPECT_RATIO    = float(os.environ.get('MAX_ASPECT_RATIO',    '5.0'))   # lebar/tinggi maks
+MIN_BOX_AREA_FRAC   = float(os.environ.get('MIN_BOX_AREA_FRAC',   '0.002')) # Minimum luas kotak relatif terhadap frame
+MAX_BOX_AREA_FRAC   = float(os.environ.get('MAX_BOX_AREA_FRAC',   '0.55'))  # Maksimum luas (bukan seluruh layar)
+MIN_SPEED_KMH       = float(os.environ.get('MIN_SPEED_KMH',       '2.0'))   # Kendaraan harus bergerak (0 = nonaktifkan)
+ROAD_COLOR_CHECK    = os.environ.get('ROAD_COLOR_CHECK', 'true').lower() == 'true'  # Aktifkan cek warna aspal
+
 
 # ──────────────────────────────────────────────
 # SSE client management
 # ──────────────────────────────────────────────
-import queue
-
 class SSEBroadcaster:
     def __init__(self):
         self.listeners = []
@@ -59,46 +118,191 @@ class SSEBroadcaster:
 broadcaster = SSEBroadcaster()
 
 # ──────────────────────────────────────────────
-# Supabase Configuration
+# Cooldown: simpan deteksi maks 1x per N detik
 # ──────────────────────────────────────────────
-SUPABASE_URL = os.environ.get("SUPABASE_URL")
-SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
+DETECTION_COOLDOWN_SEC = 5   # ganti angka ini sesuai kebutuhan
+_last_saved_time = 0.0       # timestamp detik terakhir kali disimpan
 
-supabase = None
-if SUPABASE_URL and SUPABASE_KEY:
+# ──────────────────────────────────────────────
+# MySQL Configuration (AnyMhost / cPanel)
+# ──────────────────────────────────────────────
+import pymysql
+import pymysql.cursors
+
+DB_HOST     = os.environ.get("MYSQL_HOST",     "localhost")
+DB_PORT     = int(os.environ.get("MYSQL_PORT", 3306))
+DB_USER     = os.environ.get("MYSQL_USER",     "root")
+DB_PASSWORD = os.environ.get("MYSQL_PASSWORD", "")
+DB_NAME     = os.environ.get("MYSQL_DATABASE", "deteksi_lubang")
+
+def get_db():
+    """Buka koneksi MySQL baru (per-request agar thread-safe)."""
+    return pymysql.connect(
+        host=DB_HOST,
+        port=DB_PORT,
+        user=DB_USER,
+        password=DB_PASSWORD,
+        database=DB_NAME,
+        charset='utf8mb4',
+        cursorclass=pymysql.cursors.DictCursor,
+        autocommit=True
+    )
+
+# ──────────────────────────────────────────────
+# Status koneksi MySQL (diperiksa secara LAZY
+# pada request API pertama, bukan saat startup)
+# ──────────────────────────────────────────────
+_db_available = False
+_db_checked   = False
+
+def _ensure_db():
+    """Pastikan koneksi MySQL sudah dicek (lazy, sekali saja)."""
+    global _db_available, _db_checked
+    if _db_checked:
+        return _db_available
+    _db_checked = True
     try:
-        from supabase import create_client, Client
-        supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
-        print("[INFO] Connected to Supabase!")
+        conn = get_db()
+        conn.close()
+        _db_available = True
+        logging.info(f"Terhubung ke MySQL: {DB_USER}@{DB_HOST}/{DB_NAME}")
     except Exception as e:
-        print(f"[WARN] Failed to connect to Supabase: {e}")
-else:
-    print("[WARN] SUPABASE_URL or SUPABASE_KEY is missing. Database operations will fail.")
-
-BUCKET_NAME = "snapshots"
+        _db_available = False
+        logging.warning(
+            f"Gagal terhubung ke MySQL ({e}). "
+            "Data deteksi TIDAK akan disimpan sampai DB dikonfigurasi."
+        )
+    return _db_available
 
 # ──────────────────────────────────────────────
-# Severity classification based on 3-Class YOLO Model
+# Severity classification based on 3-Class YOLO
 # ──────────────────────────────────────────────
 def classify_severity_from_class(cls_name):
-    # Mapping YOLO class to severity and estimated depth (cm)
     if cls_name == 'lubang_besar':
-        return 'High', 15.0  # Estimated 15cm depth
+        return 'High', 15.0
     elif cls_name == 'lubang_sedang':
-        return 'Medium', 8.0 # Estimated 8cm depth
+        return 'Medium', 8.0
     elif cls_name == 'lubang_kecil':
-        return 'Low', 3.0    # Estimated 3cm depth
+        return 'Low', 3.0
     else:
-        # Fallback if the model outputs something else (like 'pothole')
         return 'Medium', 5.0
 
 # ──────────────────────────────────────────────
+# Road Context Validator
+# Filter berlapis untuk memastikan hanya lubang
+# di jalan raya yang terdeteksi, bukan lubang
+# pada benda/objek lainnya.
+# ──────────────────────────────────────────────
+def _is_valid_road_detection(det, frame_h, frame_w):
+    """
+    Validasi konteks jalan raya untuk satu deteksi.
+    Return (True, None) jika valid, (False, alasan) jika tidak valid.
+
+    Filter 1 — Posisi Vertikal:
+      Lubang jalan hanya ada di area bawah frame (karena kamera menghadap jalan).
+      Objek di bagian atas frame (langit, pintu lemari, wajah) dibuang.
+
+    Filter 2 — Aspek Rasio Bounding Box:
+      Lubang jalan cenderung lebih lebar dari tingginya.
+      Objek yang sangat tegak/vertikal bukan lubang jalan.
+
+    Filter 3 — Ukuran Bounding Box:
+      Lubang jalan tidak terlalu kecil (debu/noise) dan tidak memenuhi
+      seluruh layar (itu artinya kamera sedang menghadap tembok).
+
+    Filter 4 — Warna Aspal di Sekitar Objek:
+      Area di sekitar deteksi harus mengandung warna abu-abu/kecoklatan
+      yang merupakan warna dominan aspal dan tanah jalan.
+    """
+    x1, y1, x2, y2 = det['x1'], det['y1'], det['x2'], det['y2']
+    bw = x2 - x1
+    bh = y2 - y1
+
+    if bw <= 0 or bh <= 0:
+        return False, "bbox-invalid"
+
+    # Filter 1: Posisi Vertikal — objek harus ada di bagian BAWAH frame
+    # Titik tengah-Y dari bounding box harus di bawah ROI_BOTTOM_FRAC * frame_h
+    center_y = (y1 + y2) / 2
+    roi_threshold = frame_h * ROI_BOTTOM_FRAC
+    if center_y < roi_threshold:
+        return False, f"posisi-terlalu-tinggi(center_y={center_y:.0f} < threshold={roi_threshold:.0f})"
+
+    # Filter 2: Aspek Rasio — lubang jalan lebih lebar dari tingginya
+    aspect_ratio = bw / bh
+    if aspect_ratio < MIN_ASPECT_RATIO:
+        return False, f"terlalu-sempit(ar={aspect_ratio:.2f} < min={MIN_ASPECT_RATIO})"
+    if aspect_ratio > MAX_ASPECT_RATIO:
+        return False, f"terlalu-lebar(ar={aspect_ratio:.2f} > max={MAX_ASPECT_RATIO})"
+
+    # Filter 3: Ukuran Bounding Box relatif terhadap frame
+    frame_area = frame_h * frame_w
+    box_area_frac = (bw * bh) / frame_area
+    if box_area_frac < MIN_BOX_AREA_FRAC:
+        return False, f"terlalu-kecil(area={box_area_frac:.4f} < min={MIN_BOX_AREA_FRAC})"
+    if box_area_frac > MAX_BOX_AREA_FRAC:
+        return False, f"terlalu-besar(area={box_area_frac:.4f} > max={MAX_BOX_AREA_FRAC})"
+
+    return True, None
+
+
+def _has_road_color_context(frame, det):
+    """
+    Filter 4 (Opsional): Periksa apakah area sekitar deteksi mengandung
+    warna yang umum ditemukan pada permukaan jalan (aspal abu-abu, tanah, pasir).
+    
+    Metode: Ambil area yang diperluas di sekitar bounding box, konversi ke
+    HSV, dan periksa apakah pixel dominan masuk dalam rentang warna jalan.
+    """
+    h, w = frame.shape[:2]
+    x1, y1, x2, y2 = det['x1'], det['y1'], det['x2'], det['y2']
+    bw  = x2 - x1
+    bh  = y2 - y1
+
+    # Perluas area pemeriksaan 50% ke setiap sisi
+    margin_x = int(bw * 0.5)
+    margin_y = int(bh * 0.5)
+    rx1 = max(0, x1 - margin_x)
+    ry1 = max(0, y1 - margin_y)
+    rx2 = min(w, x2 + margin_x)
+    ry2 = min(h, y2 + margin_y)
+
+    region = frame[ry1:ry2, rx1:rx2]
+    if region.size == 0:
+        return True  # Tidak bisa diperiksa, beri benefit of the doubt
+
+    hsv_region = cv2.cvtColor(region, cv2.COLOR_BGR2HSV)
+
+    # Rentang warna jalan dalam HSV:
+    # Aspal    : S sangat rendah (keabu-abuan), V menengah-gelap
+    # Tanah/Pasir: S rendah-menengah, H kekuningan-kecoklatan, V menengah
+    # Warna non-jalan yang dihindari: hijau (rumput), biru (langit), putih cerah (tembok baru)
+
+    # Aspal abu-abu: saturation < 60, value 20–200
+    asphalt_mask = cv2.inRange(hsv_region, np.array([0, 0, 20]), np.array([180, 60, 200]))
+    # Tanah/pasir coklat: H=10-30, S=30-180, V=50-200
+    soil_mask    = cv2.inRange(hsv_region, np.array([10, 30, 50]), np.array([30, 180, 200]))
+
+    road_pixels = cv2.countNonZero(asphalt_mask) + cv2.countNonZero(soil_mask)
+    total_pixels = region.shape[0] * region.shape[1]
+    road_ratio = road_pixels / total_pixels if total_pixels > 0 else 0
+
+    # Minimal 20% area sekitar harus berwarna jalan
+    return road_ratio >= 0.20
+
+
+# ──────────────────────────────────────────────
 # Fallback dark-region detector (no YOLO model)
+# Versi ditingkatkan: menerapkan filter konteks
 # ──────────────────────────────────────────────
 def fallback_detect(frame):
-    """Simple heuristic: find large dark blobs on the lower half of the frame."""
+    """Heuristic berbasis blob gelap + filter konteks jalan raya."""
     h, w = frame.shape[:2]
-    roi = frame[h // 2:, :]   # bottom half = road surface
+
+    # Hanya periksa di bagian bawah frame (area jalan)
+    roi_start = int(h * ROI_BOTTOM_FRAC)
+    roi = frame[roi_start:, :]
+
     gray = cv2.cvtColor(roi, cv2.COLOR_BGR2GRAY)
     _, thresh = cv2.threshold(gray, 60, 255, cv2.THRESH_BINARY_INV)
     kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (15, 15))
@@ -110,15 +314,26 @@ def fallback_detect(frame):
         area = cv2.contourArea(cnt)
         if area < 800:
             continue
-        x, y, bw, bh = cv2.boundingRect(cnt)
-        y += h // 2  # offset back to full-frame coords
-        conf = min(0.95, 0.50 + (area / (w * h)) * 5)
-        detections.append({
-            'x1': int(x), 'y1': int(y),
-            'x2': int(x + bw), 'y2': int(y + bh),
-            'confidence': round(conf, 3),
+        bx, by, bw_c, bh_c = cv2.boundingRect(cnt)
+        by += roi_start  # konversi balik ke koordinat frame penuh
+
+        candidate = {
+            'x1': int(bx), 'y1': int(by),
+            'x2': int(bx + bw_c), 'y2': int(by + bh_c),
+            'confidence': 0.0,
             'class': 'pothole'
-        })
+        }
+
+        valid, reason = _is_valid_road_detection(candidate, h, w)
+        if not valid:
+            continue
+
+        if ROAD_COLOR_CHECK and not _has_road_color_context(frame, candidate):
+            continue
+
+        conf = min(0.95, 0.50 + (area / (w * h)) * 5)
+        candidate['confidence'] = round(conf, 3)
+        detections.append(candidate)
     return detections
 
 # ──────────────────────────────────────────────
@@ -144,6 +359,7 @@ def sse_stream():
 # ── Core: receive a camera frame + GPS, run detection ──
 @app.route('/api/detect-frame', methods=['POST'])
 def detect_frame():
+    load_model_lazy()
     data = request.json
     if not data or 'frame' not in data:
         return jsonify({'error': 'No frame data'}), 400
@@ -163,25 +379,34 @@ def detect_frame():
     # GPS & speed from client
     latitude  = data.get('latitude', 0.0)
     longitude = data.get('longitude', 0.0)
-    speed_mps = data.get('speed', 0)            # m/s from Geolocation API
-    speed_kmh = round((speed_mps or 0) * 3.6, 1)  # convert to km/h
+    speed_mps = data.get('speed', 0)
+    speed_kmh = round((speed_mps or 0) * 3.6, 1)
 
-    # ── Run YOLOv9 or fallback ──
+    # Cek & inisialisasi koneksi MySQL (lazy, pertama kali saja)
+    _ensure_db()
+
+    # ── Filter Kecepatan: abaikan saat kendaraan diam ──
+    # Ini mencegah deteksi palsu saat pengguna tidak sedang berkendara
+    # (misalnya sedang memotret lemari, duduk, atau berdiri)
+    if MIN_SPEED_KMH > 0 and speed_kmh < MIN_SPEED_KMH:
+        logging.debug(f"Skip deteksi: kendaraan diam/terlalu lambat ({speed_kmh} km/h < {MIN_SPEED_KMH} km/h)")
+        return jsonify({'detections': [], 'saved': [], 'inference_ms': 0, 'speed_kmh': speed_kmh, 'skipped': 'speed_too_low'})
+
+    # ── Run YOLOv9 (ONNX / ultralytics) atau Fallback ──
     detections = []
     inference_ms = 0
 
     if YOLO_MODEL is not None:
+        # Mode: Ultralytics / PyTorch
         t0 = time.time()
-        results = YOLO_MODEL(frame, verbose=False, conf=0.25)
+        results = YOLO_MODEL(frame, verbose=False, conf=CONF_THRESHOLD)
         inference_ms = round((time.time() - t0) * 1000, 1)
 
         for r in results:
             for box in r.boxes:
-                cls_id = int(box.cls[0])
-                conf = float(box.conf[0])
+                cls_id   = int(box.cls[0])
+                conf     = float(box.conf[0])
                 x1, y1, x2, y2 = map(int, box.xyxy[0].tolist())
-                # Accept any class as "pothole" for a single-class model,
-                # or filter by class name if multi-class
                 cls_name = r.names.get(cls_id, 'pothole')
                 detections.append({
                     'x1': x1, 'y1': y1, 'x2': x2, 'y2': y2,
@@ -189,81 +414,114 @@ def detect_frame():
                     'class': cls_name
                 })
     else:
+        # Mode 3: Fallback OpenCV (jika tidak ada model YOLO)
         t0 = time.time()
         detections = fallback_detect(frame)
         inference_ms = round((time.time() - t0) * 1000, 1)
 
-    # ── Save detections to Supabase ──
+    # ── Filter Berlapis: Konteks Jalan Raya ──
+    # Buang semua deteksi yang tidak memenuhi kriteria jalan raya
+    filtered_detections = []
+    for det in detections:
+        valid, reason = _is_valid_road_detection(det, fh, fw)
+        if not valid:
+            logging.debug(f"Deteksi dibuang [{det.get('class','?')} conf={det.get('confidence','?')}]: {reason}")
+            continue
+        if ROAD_COLOR_CHECK and not _has_road_color_context(frame, det):
+            logging.debug(f"Deteksi dibuang [{det.get('class','?')}]: warna sekitar bukan aspal/tanah")
+            continue
+        filtered_detections.append(det)
+
+    n_discarded = len(detections) - len(filtered_detections)
+    if n_discarded > 0:
+        logging.info(f"Filter konteks jalan: {n_discarded} deteksi palsu dibuang, {len(filtered_detections)} valid tersisa")
+
+    detections = filtered_detections
+
+    # ── Simpan ke MySQL (dengan cooldown agar hanya sekali simpan) ──
+    global _last_saved_time
     saved = []
+
+    now = time.time()
+    cooldown_aktif = (now - _last_saved_time) < DETECTION_COOLDOWN_SEC
+
+    if detections and cooldown_aktif:
+        print(f"[INFO] Cooldown aktif, skip simpan. Sisa: {DETECTION_COOLDOWN_SEC - (now - _last_saved_time):.1f}s")
+
     for det in detections:
         cls_name = det['class']
         severity, est_depth = classify_severity_from_class(cls_name)
-        
-        # Estimate diameter loosely from bounding box width (heuristics for 2D)
-        bw = det['x2'] - det['x1']
-        est_diameter = round((bw / fw) * 100, 1) # rough heuristic percentage
-        
-        confidence = det['confidence']
 
-        # Save snapshot image locally first
-        snap_name = f"{uuid.uuid4().hex[:12]}.jpg"
-        snap_path = os.path.join(SNAPSHOT_DIR, snap_name)
-        
-        # Draw box on snapshot copy
+        bw          = det['x2'] - det['x1']
+        est_diameter = round((bw / fw) * 100, 1)
+        confidence  = det['confidence']
+
+        # Cek cooldown
+        if cooldown_aktif:
+            continue
+
+        # Set cooldown timer
+        _last_saved_time = now
+
+        # ── Simpan snapshot gambar lokal ──
+        snap_name  = f"{uuid.uuid4().hex[:12]}.jpg"
+        snap_path  = os.path.join(SNAPSHOT_DIR, snap_name)
         snap_frame = frame.copy()
+
         color = (0, 0, 255) if severity == 'High' else (0, 165, 255) if severity == 'Medium' else (0, 255, 0)
         cv2.rectangle(snap_frame, (det['x1'], det['y1']), (det['x2'], det['y2']), color, 3)
         label = f"{cls_name} {confidence*100:.0f}%"
         cv2.putText(snap_frame, label, (det['x1'], det['y1'] - 8),
                     cv2.FONT_HERSHEY_SIMPLEX, 0.7, color, 2)
         cv2.imwrite(snap_path, snap_frame)
-        
-        web_snap_path = f'/static/snapshots/{snap_name}'
-        
-        # Upload to Supabase Storage
-        if supabase:
-            try:
-                with open(snap_path, "rb") as f:
-                    supabase.storage.from_(BUCKET_NAME).upload(snap_name, f.read(), {"content-type": "image/jpeg"})
-                # Get public URL
-                web_snap_path = supabase.storage.from_(BUCKET_NAME).get_public_url(snap_name)
-            except Exception as e:
-                print(f"[ERROR] Supabase Storage upload failed: {e}")
 
+        web_snap_path   = f'/static/snapshots/{snap_name}'
         google_maps_url = f'https://www.google.com/maps?q={latitude},{longitude}'
-        timestamp = time.strftime('%Y-%m-%d %H:%M:%S')
+        timestamp_str   = time.strftime('%Y-%m-%d %H:%M:%S')
+
+        # ── Insert ke MySQL ──
+        new_id = int(time.time())
+        if _db_available:   # _ensure_db() sudah dipanggil di awal fungsi ini
+            try:
+                conn = get_db()
+                with conn.cursor() as cur:
+                    cur.execute(
+                        """INSERT INTO potholes
+                           (timestamp, latitude, longitude, speed,
+                            diameter, depth, confidence, severity,
+                            snapshot_path, google_maps_url)
+                           VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
+                        (timestamp_str, latitude, longitude, speed_kmh,
+                         est_diameter, est_depth, confidence, severity,
+                         web_snap_path, google_maps_url)
+                    )
+                    new_id = cur.lastrowid
+                conn.close()
+                logging.info(f"Disimpan ke MySQL id={new_id}: {snap_name} (severity={severity})")
+            except Exception as e:
+                logging.warning(f"MySQL insert gagal: {e}")
+        else:
+            logging.warning("MySQL tidak tersedia — deteksi TIDAK disimpan ke database.")
 
         record = {
-            'timestamp': timestamp,
-            'latitude': latitude,
-            'longitude': longitude,
-            'speed': speed_kmh,
-            'diameter': est_diameter,
-            'depth': est_depth,
-            'confidence': confidence,
-            'severity': severity,
-            'snapshot_path': web_snap_path,
+            'id':             new_id,
+            'timestamp':      timestamp_str,
+            'latitude':       latitude,
+            'longitude':      longitude,
+            'speed':          speed_kmh,
+            'diameter':       est_diameter,
+            'depth':          est_depth,
+            'confidence':     confidence,
+            'severity':       severity,
+            'snapshot_path':  web_snap_path,
             'google_maps_url': google_maps_url
         }
 
-        # Insert into Supabase PostgreSQL
-        if supabase:
-            try:
-                res = supabase.table('potholes').insert(record).execute()
-                if res.data:
-                    record['id'] = res.data[0]['id']
-                else:
-                    record['id'] = int(time.time()) # fallback ID
-            except Exception as e:
-                print(f"[ERROR] Supabase Insert failed: {e}")
-                record['id'] = int(time.time())
-        else:
-            record['id'] = int(time.time())
-
         saved.append(record)
-
-        # Broadcast via SSE
         broadcaster.broadcast(record)
+
+        # Hanya simpan 1 deteksi per cooldown window
+        break
 
     return jsonify({
         'detections': detections,
@@ -272,74 +530,124 @@ def detect_frame():
         'speed_kmh': speed_kmh
     })
 
-# ── API: list all saved potholes ──
+# ── API: list semua potholes ──
 @app.route('/api/potholes', methods=['GET'])
 def get_potholes():
-    if not supabase:
+    if not _ensure_db():
         return jsonify([])
     try:
-        res = supabase.table('potholes').select('*').order('id', desc=True).execute()
-        return jsonify(res.data)
+        conn = get_db()
+        with conn.cursor() as cur:
+            cur.execute("SELECT * FROM potholes ORDER BY id DESC")
+            rows = cur.fetchall()
+        conn.close()
+        # Ubah datetime ke string agar bisa di-JSON-kan
+        for r in rows:
+            if hasattr(r.get('timestamp'), 'strftime'):
+                r['timestamp'] = r['timestamp'].strftime('%Y-%m-%d %H:%M:%S')
+        return jsonify(rows)
     except Exception as e:
-        print(f"[ERROR] Failed to fetch potholes: {e}")
+        logging.warning(f"Gagal fetch potholes: {e}")
         return jsonify([])
 
-# ── API: stats ──
+# ── API: statistik ──
 @app.route('/api/stats', methods=['GET'])
 def get_stats():
-    if not supabase:
-        return jsonify({
-            'total': 0, 'severity_distribution': {'Low':0, 'Medium':0, 'High':0},
-            'avg_diameter': 0, 'avg_depth': 0, 'avg_speed': 0, 'trend': []
-        })
+    empty = {
+        'total': 0,
+        'severity_distribution': {'Low': 0, 'Medium': 0, 'High': 0},
+        'avg_diameter': 0.0,
+        'avg_depth':    0.0,
+        'avg_speed':    0.0,
+        'trend':        []
+    }
+    if not _db_available:
+        return jsonify(empty)
     try:
-        res = supabase.table('potholes').select('*').execute()
-        data = res.data
-        total = len(data)
-        
-        sev = {'Low': 0, 'Medium': 0, 'High': 0}
-        avg_diam, avg_depth, avg_speed = 0, 0, 0
-        
-        if total > 0:
-            for row in data:
-                sev[row['severity']] = sev.get(row['severity'], 0) + 1
-                avg_diam += row.get('diameter', 0)
-                avg_depth += row.get('depth', 0)
-                avg_speed += row.get('speed', 0)
-                
-            avg_diam = round(avg_diam / total, 1)
-            avg_depth = round(avg_depth / total, 1)
-            avg_speed = round(avg_speed / total, 1)
-            
-        trend_dict = {}
-        for row in data:
-            date_str = row['timestamp'][:10]
-            trend_dict[date_str] = trend_dict.get(date_str, 0) + 1
-            
-        sorted_dates = sorted(trend_dict.keys(), reverse=True)[:7]
-        trend = [{'date': d, 'count': trend_dict[d]} for d in reversed(sorted_dates)]
-        
+        conn = get_db()
+        with conn.cursor() as cur:
+            # Total
+            cur.execute("SELECT COUNT(*) AS total FROM potholes")
+            total = cur.fetchone()['total']
+
+            # Distribusi severity
+            cur.execute("""
+                SELECT severity, COUNT(*) AS cnt
+                FROM potholes
+                GROUP BY severity
+            """)
+            sev = {'Low': 0, 'Medium': 0, 'High': 0}
+            for row in cur.fetchall():
+                sev[row['severity']] = row['cnt']
+
+            # Rata-rata
+            cur.execute("""
+                SELECT
+                    COALESCE(AVG(diameter), 0) AS avg_diameter,
+                    COALESCE(AVG(depth),    0) AS avg_depth,
+                    COALESCE(AVG(speed),    0) AS avg_speed
+                FROM potholes
+            """)
+            avgs = cur.fetchone()
+
+            # Trend 7 hari terakhir
+            cur.execute("""
+                SELECT DATE(timestamp) AS date, COUNT(*) AS cnt
+                FROM potholes
+                GROUP BY DATE(timestamp)
+                ORDER BY date DESC
+                LIMIT 7
+            """)
+            trend_rows = cur.fetchall()
+        conn.close()
+
+        trend = [
+            {'date': str(r['date']), 'count': r['cnt']}
+            for r in reversed(trend_rows)
+        ]
+
         return jsonify({
-            'total': total,
+            'total':                 total,
             'severity_distribution': sev,
-            'avg_diameter': avg_diam,
-            'avg_depth': avg_depth,
-            'avg_speed': avg_speed,
-            'trend': trend
+            'avg_diameter':          round(float(avgs['avg_diameter']), 1),
+            'avg_depth':             round(float(avgs['avg_depth']),    1),
+            'avg_speed':             round(float(avgs['avg_speed']),    1),
+            'trend':                 trend
         })
     except Exception as e:
-        print(f"[ERROR] Failed to fetch stats: {e}")
-        return jsonify({'error': str(e)})
+        logging.warning(f"Gagal fetch stats: {e}")
+        return jsonify(empty)
 
-# ── API: delete a pothole record ──
+# ── API: hapus record ──
 @app.route('/api/potholes/<int:pid>', methods=['DELETE'])
 def delete_pothole(pid):
-    if supabase:
-        try:
-            supabase.table('potholes').delete().eq('id', pid).execute()
-        except Exception as e:
-            print(f"[ERROR] Failed to delete: {e}")
+    try:
+        conn = get_db()
+        with conn.cursor() as cur:
+            cur.execute("DELETE FROM potholes WHERE id = %s", (pid,))
+        conn.close()
+    except Exception as e:
+        logging.exception(f"Gagal delete id={pid}:")
     return jsonify({'deleted': pid})
+
+# ── Global Error Handler ──
+@app.errorhandler(Exception)
+def handle_exception(e):
+    from werkzeug.exceptions import HTTPException
+    # Jika exception adalah HTTP error (seperti 404, 405, dll), biarkan Flask menanganinya atau kembalikan status code asli
+    if isinstance(e, HTTPException):
+        return jsonify({
+            'error': e.name,
+            'message': e.description
+        }), e.code
+
+    # Log error dengan lengkap beserta tracebacks untuk error server asli (500)
+    logging.exception("Terjadi Unhandled Exception pada server:")
+    # Kembalikan response JSON
+    return jsonify({
+        'error': 'Internal Server Error',
+        'message': str(e)
+    }), 500
 
 if __name__ == '__main__':
     port = int(os.environ.get("PORT", 7860))
