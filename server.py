@@ -374,7 +374,7 @@ def detect_frame():
     # Ini mencegah deteksi palsu saat pengguna tidak sedang berkendara
     # (misalnya sedang memotret lemari, duduk, atau berdiri)
     if MIN_SPEED_KMH > 0 and speed_kmh < MIN_SPEED_KMH:
-        logging.debug(f"Skip deteksi: kendaraan diam/terlalu lambat ({speed_kmh} km/h < {MIN_SPEED_KMH} km/h)")
+        logging.info(f"[SKIP] Kendaraan diam/lambat ({speed_kmh} km/h < min {MIN_SPEED_KMH} km/h). Set MIN_SPEED_KMH=0 di .env untuk menonaktifkan.")
         return jsonify({'detections': [], 'saved': [], 'inference_ms': 0, 'speed_kmh': speed_kmh, 'skipped': 'speed_too_low'})
 
     # ── Run YOLOv9 (ONNX / ultralytics) atau Fallback ──
@@ -514,6 +514,90 @@ def detect_frame():
         'saved': saved,
         'inference_ms': inference_ms,
         'speed_kmh': speed_kmh
+    })
+
+
+# ── API: Test Deteksi Statis (tanpa GPS / kecepatan) ──
+# Gunakan untuk menguji model dengan foto langsung dari browser
+@app.route('/api/test-detect', methods=['POST'])
+def test_detect():
+    """Endpoint khusus untuk mode TEST STATIC.
+    Tidak ada filter kecepatan, tidak menyimpan ke DB.
+    Mengembalikan semua deteksi + alasan filter setiap kotak.
+    """
+    load_model_lazy()
+    data = request.json
+    if not data or 'frame' not in data:
+        return jsonify({'error': 'No frame data'}), 400
+
+    try:
+        img_bytes = base64.b64decode(data['frame'].split(',')[-1])
+        np_arr = np.frombuffer(img_bytes, np.uint8)
+        frame = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
+        if frame is None:
+            return jsonify({'error': 'Invalid image'}), 400
+    except Exception as e:
+        return jsonify({'error': f'Decode error: {e}'}), 400
+
+    fh, fw = frame.shape[:2]
+
+    # ── Jalankan model (tanpa filter kecepatan) ──
+    raw_detections = []
+    inference_ms = 0
+
+    if YOLO_MODEL is not None:
+        t0 = time.time()
+        results = YOLO_MODEL(frame, verbose=False, conf=CONF_THRESHOLD)
+        inference_ms = round((time.time() - t0) * 1000, 1)
+        for r in results:
+            for box in r.boxes:
+                cls_id   = int(box.cls[0])
+                conf     = float(box.conf[0])
+                x1, y1, x2, y2 = map(int, box.xyxy[0].tolist())
+                cls_name = r.names.get(cls_id, 'pothole')
+                raw_detections.append({
+                    'x1': x1, 'y1': y1, 'x2': x2, 'y2': y2,
+                    'confidence': round(conf, 3),
+                    'class': cls_name
+                })
+    else:
+        t0 = time.time()
+        raw_detections = fallback_detect(frame)
+        inference_ms = round((time.time() - t0) * 1000, 1)
+
+    # ── Filter dengan alasan (untuk debugging) ──
+    passed = []
+    rejected = []
+    for det in raw_detections:
+        valid, reason = _is_valid_road_detection(det, fh, fw)
+        color_ok = True
+        if valid and ROAD_COLOR_CHECK:
+            color_ok = _has_road_color_context(frame, det)
+
+        if valid and color_ok:
+            passed.append(det)
+        else:
+            det['reject_reason'] = reason if not valid else 'warna-bukan-aspal'
+            rejected.append(det)
+
+    logging.info(
+        f"[TEST] frame={fw}x{fh} raw={len(raw_detections)} "
+        f"passed={len(passed)} rejected={len(rejected)} "
+        f"inference={inference_ms}ms model={'YOLO' if YOLO_MODEL else 'Fallback'}"
+    )
+
+    return jsonify({
+        'detections': passed,
+        'rejected': rejected,
+        'inference_ms': inference_ms,
+        'frame_size': {'w': fw, 'h': fh},
+        'config': {
+            'conf_threshold': CONF_THRESHOLD,
+            'roi_bottom_frac': ROI_BOTTOM_FRAC,
+            'min_aspect_ratio': MIN_ASPECT_RATIO,
+            'max_aspect_ratio': MAX_ASPECT_RATIO,
+            'model': MODEL_PATH
+        }
     })
 
 # ── API: list semua potholes ──

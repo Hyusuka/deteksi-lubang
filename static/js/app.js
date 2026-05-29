@@ -15,6 +15,7 @@ let gpsLat = 0, gpsLon = 0, gpsSpeed = 0, gpsHeading = 0, gpsAccuracy = 0;
 
 // Detection settings
 const DETECT_INTERVAL_MS = 800;
+let testMode = false; // Mode test static (tanpa GPS)
 
 // ── Init ──
 document.addEventListener('DOMContentLoaded', () => {
@@ -556,4 +557,212 @@ function clearAll() {
             refreshStats();
         });
     });
+}
+
+// ═══════════════════════════════════════════════
+// 13. TEST STATIC MODE — Uji tanpa GPS / kecepatan
+// ═══════════════════════════════════════════════
+
+/**
+ * Aktifkan/nonaktifkan panel Test Static.
+ * Jika panel belum ada, buat dahulu.
+ */
+function toggleTestMode() {
+    testMode = !testMode;
+    let panel = document.getElementById('test-mode-panel');
+    if (!panel) {
+        panel = createTestPanel();
+        document.body.appendChild(panel);
+    }
+    panel.style.display = testMode ? 'block' : 'none';
+
+    const btn = document.getElementById('btn-test-mode');
+    if (btn) {
+        btn.textContent = testMode ? '🧪 Tutup Test' : '🧪 Mode Test';
+        btn.style.background = testMode ? 'var(--danger)' : '';
+    }
+}
+
+function createTestPanel() {
+    const panel = document.createElement('div');
+    panel.id = 'test-mode-panel';
+    panel.style.cssText = `
+        position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+        background: #0A0D12EE; z-index: 9999; overflow-y: auto;
+        padding: 20px; display: none; font-family: Outfit, sans-serif;
+    `;
+    panel.innerHTML = `
+        <div style="max-width:600px; margin:0 auto;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+                <h2 style="color:#00E5FF; margin:0;">🧪 Mode Test Static</h2>
+                <button onclick="toggleTestMode()" style="
+                    background:#FF3B30; color:#fff; border:none;
+                    padding:8px 16px; border-radius:8px; cursor:pointer;
+                    font-size:14px; font-family:Outfit,sans-serif;
+                ">✕ Tutup</button>
+            </div>
+            <p style="color:#8B9DB8; margin-bottom:16px;">
+                Upload foto atau ambil dari kamera — deteksi dijalankan <b style='color:#fff'>tanpa filter kecepatan</b>.
+                Cocok untuk menguji model di tempat diam.
+            </p>
+
+            <!-- Upload / Kamera -->
+            <div style="display:flex; gap:10px; margin-bottom:16px;">
+                <label for="test-file-input" style="
+                    flex:1; padding:12px; background:#1E2533; border:2px dashed #2A3447;
+                    border-radius:10px; text-align:center; cursor:pointer; color:#8B9DB8;
+                    font-size:13px;
+                ">📁 Pilih Foto</label>
+                <input id="test-file-input" type="file" accept="image/*" capture="environment"
+                    style="display:none;" onchange="runTestOnFile(this)">
+                <button onclick="runTestOnCamera()" style="
+                    flex:1; padding:12px; background:#1E2533; border:2px solid #2A3447;
+                    border-radius:10px; cursor:pointer; color:#8B9DB8; font-size:13px;
+                    font-family:Outfit,sans-serif;
+                ">📷 Dari Kamera Live</button>
+            </div>
+
+            <!-- Preview -->
+            <div id="test-preview-wrap" style="position:relative; background:#121821; border-radius:10px; overflow:hidden; margin-bottom:16px; display:none;">
+                <img id="test-preview-img" style="width:100%; display:block;">
+                <canvas id="test-overlay-canvas" style="position:absolute;top:0;left:0;width:100%;height:100%;"></canvas>
+            </div>
+
+            <!-- Result -->
+            <div id="test-result-box" style="
+                background:#1E2533; border-radius:10px; padding:16px;
+                color:#8B9DB8; font-size:13px; min-height:80px;
+                white-space: pre-wrap; font-family: monospace;
+            ">Belum ada hasil. Upload foto untuk mulai uji.</div>
+        </div>
+    `;
+    return panel;
+}
+
+async function runTestOnFile(input) {
+    if (!input.files || !input.files[0]) return;
+    const file = input.files[0];
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+        const dataUrl = e.target.result;
+        await runTestDetect(dataUrl);
+    };
+    reader.readAsDataURL(file);
+}
+
+async function runTestOnCamera() {
+    const video = document.getElementById('camera-video');
+    if (!video || !video.videoWidth) {
+        document.getElementById('test-result-box').textContent =
+            '⚠️ Kamera belum aktif. Tekan Mulai Deteksi dahulu, lalu buka Test Mode.';
+        return;
+    }
+    const cap = document.createElement('canvas');
+    cap.width = video.videoWidth;
+    cap.height = video.videoHeight;
+    cap.getContext('2d').drawImage(video, 0, 0);
+    const dataUrl = cap.toDataURL('image/jpeg', 0.85);
+    await runTestDetect(dataUrl);
+}
+
+async function runTestDetect(dataUrl) {
+    // Tampilkan preview
+    const wrap = document.getElementById('test-preview-wrap');
+    const img  = document.getElementById('test-preview-img');
+    const resultBox = document.getElementById('test-result-box');
+    wrap.style.display = 'block';
+    img.src = dataUrl;
+    resultBox.textContent = '⏳ Menjalankan deteksi...';
+
+    let response;
+    try {
+        response = await fetch('/api/test-detect', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ frame: dataUrl })
+        });
+    } catch (err) {
+        resultBox.textContent = `❌ Gagal koneksi ke server: ${err.message}`;
+        return;
+    }
+
+    if (!response.ok) {
+        resultBox.textContent = `❌ Server error: ${response.status} ${response.statusText}`;
+        return;
+    }
+
+    const result = await response.json();
+
+    // Gambar bounding box di atas canvas overlay
+    img.onload = () => {
+        const canvas = document.getElementById('test-overlay-canvas');
+        canvas.width  = img.naturalWidth;
+        canvas.height = img.naturalHeight;
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // Deteksi yang LOLOS (hijau)
+        (result.detections || []).forEach(det => {
+            const { x1, y1, x2, y2, confidence, class: cls } = det;
+            ctx.strokeStyle = '#34C759';
+            ctx.lineWidth = 4;
+            ctx.strokeRect(x1, y1, x2 - x1, y2 - y1);
+            ctx.fillStyle = '#34C75988';
+            ctx.fillRect(x1, y1, x2 - x1, y2 - y1);
+            ctx.fillStyle = '#fff';
+            ctx.font = 'bold 16px Outfit';
+            ctx.fillText(`✓ ${cls} ${(confidence*100).toFixed(0)}%`, x1 + 4, y1 + 20);
+        });
+
+        // Deteksi yang DIBUANG (merah semi-transparan)
+        (result.rejected || []).forEach(det => {
+            const { x1, y1, x2, y2, confidence, class: cls, reject_reason } = det;
+            ctx.strokeStyle = '#FF3B3066';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([6, 4]);
+            ctx.strokeRect(x1, y1, x2 - x1, y2 - y1);
+            ctx.setLineDash([]);
+            ctx.fillStyle = '#FF3B3033';
+            ctx.fillRect(x1, y1, x2 - x1, y2 - y1);
+            ctx.fillStyle = '#FF9F0A';
+            ctx.font = '12px Outfit';
+            ctx.fillText(`✗ ${reject_reason || 'filtered'}`, x1 + 4, y1 + 16);
+        });
+    };
+    // Trigger onload jika gambar sudah cached
+    if (img.complete) img.onload();
+
+    // Tampilkan teks hasil
+    const passed   = result.detections?.length || 0;
+    const rejected = result.rejected?.length   || 0;
+    const config   = result.config || {};
+
+    let txt = `📊 HASIL DETEKSI\n`;
+    txt += `━━━━━━━━━━━━━━━━━━━━━\n`;
+    txt += `✅ Lolos filter  : ${passed} deteksi\n`;
+    txt += `❌ Dibuang filter: ${rejected} deteksi\n`;
+    txt += `⚡ Waktu inferensi: ${result.inference_ms} ms\n`;
+    txt += `📐 Ukuran frame  : ${result.frame_size?.w}×${result.frame_size?.h}\n`;
+    txt += `\n⚙️  KONFIGURASI AKTIF\n`;
+    txt += `━━━━━━━━━━━━━━━━━━━━━\n`;
+    txt += `  Model          : ${config.model}\n`;
+    txt += `  CONF_THRESHOLD : ${config.conf_threshold}\n`;
+    txt += `  ROI_BOTTOM_FRAC: ${config.roi_bottom_frac} (objek harus di bawah ${(config.roi_bottom_frac*100).toFixed(0)}% frame)\n`;
+    txt += `  Aspek rasio    : ${config.min_aspect_ratio} – ${config.max_aspect_ratio}\n`;
+
+    if (rejected > 0) {
+        txt += `\n🔍 ALASAN DIBUANG\n`;
+        txt += `━━━━━━━━━━━━━━━━━━━━━\n`;
+        (result.rejected || []).forEach((det, i) => {
+            txt += `  [${i+1}] ${det.class} conf=${(det.confidence*100).toFixed(0)}% → ${det.reject_reason}\n`;
+        });
+    }
+
+    if (passed === 0 && rejected === 0) {
+        txt += `\n⚠️  Model tidak mendeteksi objek apapun.\n`;
+        txt += `Kemungkinan: model yolov9t.pt belum dilatih dengan dataset lubang jalan.\n`;
+        txt += `Coba ganti model dengan model yang sudah fine-tuned untuk pothole detection.`;
+    }
+
+    resultBox.textContent = txt;
 }

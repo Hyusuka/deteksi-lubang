@@ -32,6 +32,16 @@
                 <span class="btn-icon">▶</span>
                 <span>Mulai Deteksi</span>
             </button>
+            <!-- Tombol Mode Test — untuk uji model tanpa GPS/bergerak -->
+            <button id="btn-test-mode" onclick="toggleTestMode()" style="
+                width: 100%; margin-top: 12px; padding: 14px;
+                background: transparent; border: 1.5px solid #2A3447;
+                border-radius: 12px; color: #8B9DB8; font-size: 0.95rem;
+                font-family: Outfit, sans-serif; cursor: pointer;
+                display: flex; align-items: center; justify-content: center; gap: 8px;
+            ">
+                🧪 Mode Test (Uji Tanpa GPS)
+            </button>
             <div class="camera-select-wrapper" style="margin-top: 16px;">
                 <label for="camera-select" style="font-size: 0.8rem; color: var(--text2); display: block; margin-bottom: 6px;">Pilih Kamera (HP / Eksternal USB):</label>
                 <select id="camera-select" class="camera-select">
@@ -61,7 +71,14 @@
                     <div class="status-pill" id="pill-gps"><span class="dot green"></span> GPS</div>
                     <span class="badge" id="badge-fps">FPS: -- | --ms</span>
                 </div>
-                <button class="btn-stop-hud" id="btn-stop">■ STOP</button>
+                <div style="display:flex; gap:6px;">
+                    <button onclick="toggleTestMode()" style="
+                        background:#1E2533; border:1px solid #2A3447; color:#8B9DB8;
+                        padding:6px 10px; border-radius:8px; font-size:11px;
+                        cursor:pointer; font-family:Outfit,sans-serif;
+                    ">🧪 Test</button>
+                    <button class="btn-stop-hud" id="btn-stop">■ STOP</button>
+                </div>
             </div>
 
             <!-- Speed display (large, center top) -->
