@@ -42,7 +42,7 @@ os.makedirs(SNAPSHOT_DIR, exist_ok=True)
 YOLO_MODEL      = None
 _model_loaded   = False
 
-MODEL_PATH = os.environ.get('YOLO_MODEL', 'yolov9t.pt')
+MODEL_PATH = os.environ.get('YOLO_MODEL', 'pothole_yolov8.pt')
 
 def load_model_lazy():
     global YOLO_MODEL, _model_loaded, np, cv2
