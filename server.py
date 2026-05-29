@@ -42,7 +42,9 @@ os.makedirs(SNAPSHOT_DIR, exist_ok=True)
 YOLO_MODEL      = None
 _model_loaded   = False
 
-MODEL_PATH = os.environ.get('YOLO_MODEL', 'pothole_yolov8.pt')
+MODEL_PATH = os.environ.get('YOLO_MODEL', 'yolov9-pothole.pt')
+ROBOFLOW_API_KEY = os.environ.get('ROBOFLOW_API_KEY', '')
+ROBOFLOW_MODEL   = os.environ.get('ROBOFLOW_MODEL', 'pothole-detection-i00zy/3')
 
 def load_model_lazy():
     global YOLO_MODEL, _model_loaded, np, cv2
@@ -377,32 +379,81 @@ def detect_frame():
         logging.info(f"[SKIP] Kendaraan diam/lambat ({speed_kmh} km/h < min {MIN_SPEED_KMH} km/h). Set MIN_SPEED_KMH=0 di .env untuk menonaktifkan.")
         return jsonify({'detections': [], 'saved': [], 'inference_ms': 0, 'speed_kmh': speed_kmh, 'skipped': 'speed_too_low'})
 
-    # ── Run YOLOv9 (ONNX / ultralytics) atau Fallback ──
+    # ── Run Roboflow API, YOLOv8 (ultralytics), atau Fallback ──
     detections = []
     inference_ms = 0
 
-    if YOLO_MODEL is not None:
-        # Mode: Ultralytics / PyTorch
+    if ROBOFLOW_API_KEY:
         t0 = time.time()
-        results = YOLO_MODEL(frame, verbose=False, conf=CONF_THRESHOLD)
-        inference_ms = round((time.time() - t0) * 1000, 1)
+        try:
+            import requests
+            base64_img = data['frame'].split(',')[-1]
+            roboflow_url = f"https://detect.roboflow.com/{ROBOFLOW_MODEL}"
+            
+            response = requests.post(
+                roboflow_url,
+                params={"api_key": ROBOFLOW_API_KEY},
+                data=base64_img,
+                headers={"Content-Type": "application/x-www-form-urlencoded"},
+                timeout=5.0
+            )
+            
+            if response.status_code == 200:
+                res_json = response.json()
+                inference_ms = round((time.time() - t0) * 1000, 1)
+                
+                for pred in res_json.get('predictions', []):
+                    rx = pred['x']
+                    ry = pred['y']
+                    rw = pred['width']
+                    rh = pred['height']
+                    
+                    x1 = int(rx - rw / 2)
+                    y1 = int(ry - rh / 2)
+                    x2 = int(rx + rw / 2)
+                    y2 = int(ry + rh / 2)
+                    
+                    detections.append({
+                        'x1': max(0, x1), 'y1': max(0, y1),
+                        'x2': min(fw, x2), 'y2': min(fh, y2),
+                        'confidence': round(float(pred['confidence']), 3),
+                        'class': pred['class']
+                    })
+                logging.info(f"Roboflow API inference completed: {len(detections)} detections found in {inference_ms}ms")
+            else:
+                logging.warning(f"Roboflow API error (status {response.status_code}): {response.text}")
+        except Exception as e:
+            logging.error(f"Gagal melakukan deteksi via Roboflow API: {e}")
 
-        for r in results:
-            for box in r.boxes:
-                cls_id   = int(box.cls[0])
-                conf     = float(box.conf[0])
-                x1, y1, x2, y2 = map(int, box.xyxy[0].tolist())
-                cls_name = r.names.get(cls_id, 'pothole')
-                detections.append({
-                    'x1': x1, 'y1': y1, 'x2': x2, 'y2': y2,
-                    'confidence': round(conf, 3),
-                    'class': cls_name
-                })
-    else:
-        # Mode 3: Fallback OpenCV (jika tidak ada model YOLO)
-        t0 = time.time()
-        detections = fallback_detect(frame)
-        inference_ms = round((time.time() - t0) * 1000, 1)
+    # Jika Roboflow API tidak aktif atau gagal mendapat deteksi, gunakan model lokal jika ada
+    if not ROBOFLOW_API_KEY or (ROBOFLOW_API_KEY and not detections):
+        if YOLO_MODEL is not None:
+            # Mode: Ultralytics / PyTorch
+            t0 = time.time()
+            results = YOLO_MODEL(frame, verbose=False, conf=CONF_THRESHOLD)
+            if not detections:
+                inference_ms = round((time.time() - t0) * 1000, 1)
+
+            local_detections = []
+            for r in results:
+                for box in r.boxes:
+                    cls_id   = int(box.cls[0])
+                    conf     = float(box.conf[0])
+                    x1, y1, x2, y2 = map(int, box.xyxy[0].tolist())
+                    cls_name = r.names.get(cls_id, 'pothole')
+                    local_detections.append({
+                        'x1': x1, 'y1': y1, 'x2': x2, 'y2': y2,
+                        'confidence': round(conf, 3),
+                        'class': cls_name
+                    })
+            if not detections:
+                detections = local_detections
+        else:
+            # Mode 3: Fallback OpenCV (jika tidak ada model YOLO)
+            if not detections:
+                t0 = time.time()
+                detections = fallback_detect(frame)
+                inference_ms = round((time.time() - t0) * 1000, 1)
 
     # ── Filter Berlapis: Konteks Jalan Raya ──
     # Buang semua deteksi yang tidak memenuhi kriteria jalan raya
@@ -545,25 +596,73 @@ def test_detect():
     raw_detections = []
     inference_ms = 0
 
-    if YOLO_MODEL is not None:
+    if ROBOFLOW_API_KEY:
         t0 = time.time()
-        results = YOLO_MODEL(frame, verbose=False, conf=CONF_THRESHOLD)
-        inference_ms = round((time.time() - t0) * 1000, 1)
-        for r in results:
-            for box in r.boxes:
-                cls_id   = int(box.cls[0])
-                conf     = float(box.conf[0])
-                x1, y1, x2, y2 = map(int, box.xyxy[0].tolist())
-                cls_name = r.names.get(cls_id, 'pothole')
-                raw_detections.append({
-                    'x1': x1, 'y1': y1, 'x2': x2, 'y2': y2,
-                    'confidence': round(conf, 3),
-                    'class': cls_name
-                })
-    else:
-        t0 = time.time()
-        raw_detections = fallback_detect(frame)
-        inference_ms = round((time.time() - t0) * 1000, 1)
+        try:
+            import requests
+            base64_img = data['frame'].split(',')[-1]
+            roboflow_url = f"https://detect.roboflow.com/{ROBOFLOW_MODEL}"
+            
+            response = requests.post(
+                roboflow_url,
+                params={"api_key": ROBOFLOW_API_KEY},
+                data=base64_img,
+                headers={"Content-Type": "application/x-www-form-urlencoded"},
+                timeout=5.0
+            )
+            
+            if response.status_code == 200:
+                res_json = response.json()
+                inference_ms = round((time.time() - t0) * 1000, 1)
+                
+                for pred in res_json.get('predictions', []):
+                    rx = pred['x']
+                    ry = pred['y']
+                    rw = pred['width']
+                    rh = pred['height']
+                    
+                    x1 = int(rx - rw / 2)
+                    y1 = int(ry - rh / 2)
+                    x2 = int(rx + rw / 2)
+                    y2 = int(ry + rh / 2)
+                    
+                    raw_detections.append({
+                        'x1': max(0, x1), 'y1': max(0, y1),
+                        'x2': min(fw, x2), 'y2': min(fh, y2),
+                        'confidence': round(float(pred['confidence']), 3),
+                        'class': pred['class']
+                    })
+            else:
+                logging.warning(f"Roboflow API error in test: {response.text}")
+        except Exception as e:
+            logging.error(f"Gagal deteksi test via Roboflow API: {e}")
+
+    if not ROBOFLOW_API_KEY or (ROBOFLOW_API_KEY and not raw_detections):
+        if YOLO_MODEL is not None:
+            t0 = time.time()
+            results = YOLO_MODEL(frame, verbose=False, conf=CONF_THRESHOLD)
+            if not raw_detections:
+                inference_ms = round((time.time() - t0) * 1000, 1)
+            
+            local_detections = []
+            for r in results:
+                for box in r.boxes:
+                    cls_id   = int(box.cls[0])
+                    conf     = float(box.conf[0])
+                    x1, y1, x2, y2 = map(int, box.xyxy[0].tolist())
+                    cls_name = r.names.get(cls_id, 'pothole')
+                    local_detections.append({
+                        'x1': x1, 'y1': y1, 'x2': x2, 'y2': y2,
+                        'confidence': round(conf, 3),
+                        'class': cls_name
+                    })
+            if not raw_detections:
+                raw_detections = local_detections
+        else:
+            if not raw_detections:
+                t0 = time.time()
+                raw_detections = fallback_detect(frame)
+                inference_ms = round((time.time() - t0) * 1000, 1)
 
     # ── Filter dengan alasan (untuk debugging) ──
     passed = []
