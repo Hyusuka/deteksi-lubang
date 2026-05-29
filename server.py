@@ -126,40 +126,25 @@ _last_saved_time = 0.0       # timestamp detik terakhir kali disimpan
 # ──────────────────────────────────────────────
 # MySQL Configuration (AnyMhost / cPanel)
 # ──────────────────────────────────────────────
-import pymysql
-import pymysql.cursors
+import supabase
 
-DB_HOST     = os.environ.get("MYSQL_HOST",     "localhost")
-DB_PORT     = int(os.environ.get("MYSQL_PORT", 3306))
-DB_USER     = os.environ.get("MYSQL_USER",     "root")
-DB_PASSWORD = os.environ.get("MYSQL_PASSWORD", "")
-DB_NAME     = os.environ.get("MYSQL_DATABASE", "deteksi_lubang")
+SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
+SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "")
 
-def get_db():
-    """Buka koneksi MySQL baru (per-request agar thread-safe)."""
-    return pymysql.connect(
-        host=DB_HOST,
-        port=DB_PORT,
-        user=DB_USER,
-        password=DB_PASSWORD,
-        database=DB_NAME,
-        charset='utf8mb4',
-        cursorclass=pymysql.cursors.DictCursor,
-        autocommit=True
-    )
-
-# ──────────────────────────────────────────────
-# Status koneksi MySQL (diperiksa secara LAZY
-# pada request API pertama, bukan saat startup)
-# ──────────────────────────────────────────────
+_supabase_client = None
 _db_available = False
-_db_checked   = False
 
 def _ensure_db():
-    """Pastikan koneksi MySQL sudah dicek (lazy, sekali saja)."""
-    global _db_available, _db_checked
-    if _db_checked:
-        return _db_available
+    global _supabase_client, _db_available
+    if _supabase_client is None and SUPABASE_URL and SUPABASE_KEY:
+        try:
+            from supabase import create_client, Client
+            _supabase_client = create_client(SUPABASE_URL, SUPABASE_KEY)
+            _db_available = True
+        except Exception as e:
+            logging.error(f"Supabase init failed: {e}")
+    return _db_available
+
     _db_checked = True
     try:
         conn = get_db()
@@ -481,27 +466,28 @@ def detect_frame():
 
         # ── Insert ke MySQL ──
         new_id = int(time.time())
-        if _db_available:   # _ensure_db() sudah dipanggil di awal fungsi ini
+        if _db_available:
             try:
-                conn = get_db()
-                with conn.cursor() as cur:
-                    cur.execute(
-                        """INSERT INTO potholes
-                           (timestamp, latitude, longitude, speed,
-                            diameter, depth, confidence, severity,
-                            snapshot_path, google_maps_url)
-                           VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
-                        (timestamp_str, latitude, longitude, speed_kmh,
-                         est_diameter, est_depth, confidence, severity,
-                         web_snap_path, google_maps_url)
-                    )
-                    new_id = cur.lastrowid
-                conn.close()
-                logging.info(f"Disimpan ke MySQL id={new_id}: {snap_name} (severity={severity})")
+                data = {
+                    "timestamp": timestamp_str,
+                    "latitude": latitude,
+                    "longitude": longitude,
+                    "speed": speed_kmh,
+                    "diameter": est_diameter,
+                    "depth": est_depth,
+                    "confidence": float(confidence),
+                    "severity": severity,
+                    "snapshot_path": web_snap_path,
+                    "google_maps_url": google_maps_url
+                }
+                res = _supabase_client.table("potholes").insert(data).execute()
+                if res.data:
+                    new_id = res.data[0]['id']
+                logging.info(f"Disimpan ke Supabase id={new_id}: {snap_name}")
             except Exception as e:
-                logging.warning(f"MySQL insert gagal: {e}")
+                logging.warning(f"Supabase insert gagal: {e}")
         else:
-            logging.warning("MySQL tidak tersedia — deteksi TIDAK disimpan ke database.")
+            logging.warning("Supabase tidak tersedia — deteksi TIDAK disimpan ke database.")
 
         record = {
             'id':             new_id,
@@ -536,6 +522,12 @@ def get_potholes():
     if not _ensure_db():
         return jsonify([])
     try:
+        res = _supabase_client.table("potholes").select("*").order("id", desc=True).execute()
+        return jsonify(res.data)
+    except Exception as e:
+        logging.warning(f"Gagal fetch potholes: {e}")
+        return jsonify([])
+    try:
         conn = get_db()
         with conn.cursor() as cur:
             cur.execute("SELECT * FROM potholes ORDER BY id DESC")
@@ -561,7 +553,49 @@ def get_stats():
         'avg_speed':    0.0,
         'trend':        []
     }
-    if not _db_available:
+    if not _ensure_db():
+        return jsonify(empty)
+    try:
+        res = _supabase_client.table("potholes").select("*").execute()
+        rows = res.data
+        if not rows:
+            return jsonify(empty)
+        
+        total = len(rows)
+        sev = {'Low': 0, 'Medium': 0, 'High': 0}
+        sum_dia = 0
+        sum_dep = 0
+        sum_spd = 0
+        
+        # Simple trend aggregation by day
+        from collections import defaultdict
+        trend_dict = defaultdict(int)
+
+        for r in rows:
+            sev_val = r.get("severity", "Low")
+            if sev_val in sev: sev[sev_val] += 1
+            else: sev["Low"] += 1
+            
+            sum_dia += r.get("diameter", 0)
+            sum_dep += r.get("depth", 0)
+            sum_spd += r.get("speed", 0)
+            
+            date_str = str(r.get("timestamp", ""))[:10]
+            if date_str:
+                trend_dict[date_str] += 1
+                
+        trend = [{"date": k, "count": v} for k, v in sorted(trend_dict.items())][-7:]
+
+        return jsonify({
+            'total':                 total,
+            'severity_distribution': sev,
+            'avg_diameter':          round(sum_dia/total, 1) if total else 0,
+            'avg_depth':             round(sum_dep/total, 1) if total else 0,
+            'avg_speed':             round(sum_spd/total, 1) if total else 0,
+            'trend':                 trend
+        })
+    except Exception as e:
+        logging.warning(f"Gagal fetch stats: {e}")
         return jsonify(empty)
     try:
         conn = get_db()
