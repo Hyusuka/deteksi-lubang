@@ -311,30 +311,46 @@ function stopGPS() {
 }
 
 // ═══════════════════════════════════════════════
-        console.log('[TF.js] Backend:', tf.getBackend());
+// 3. ONNX MODEL LOADER
+// ═══════════════════════════════════════════════
+async function loadONNXModel() {
+    if (ortModelReady || ortModelLoading) return;
+    ortModelLoading = true;
 
-        // Load model dari folder static/tfjs_model/
-        tfModel = await tf.loadGraphModel('/static/tfjs_model/model.json');
-        console.log('[TF.js] Model loaded successfully!');
+    updatePill('pill-camera', 'AI ⏳', 'yellow');
 
-        // Warmup run: jalankan dummy inference agar JIT compilation selesai
-        const dummy = tf.zeros([1, 3, 640, 640]);
-        const warmupOut = tfModel.predict(dummy);
-        if (Array.isArray(warmupOut)) warmupOut.forEach(t => t.dispose());
-        else warmupOut.dispose();
-        dummy.dispose();
+    try {
+        updateAppStatus('Memuat AI ONNX...');
+        
+        // Konfigurasi backend untuk performa maksimal
+        ort.env.wasm.numThreads = 1; 
+        
+        // Load model .onnx
+        ortSession = await ort.InferenceSession.create('/static/pothole_yolov8.onnx', {
+            executionProviders: ['webgl', 'wasm'] // Prioritas GPU (WebGL), fallback CPU (WASM)
+        });
+        console.log('[ONNX] Model loaded successfully!');
 
-        tfModelReady  = true;
-        tfModelLoading = false;
+        // Warmup (opsional tapi disarankan agar frame pertama tidak ngelag)
+        updateAppStatus('Warmup AI...');
+        const dummyInput = new Float32Array(3 * 640 * 640);
+        const tensor = new ort.Tensor('float32', dummyInput, [1, 3, 640, 640]);
+        const inputName = ortSession.inputNames[0];
+        const feeds = {};
+        feeds[inputName] = tensor;
+        await ortSession.run(feeds);
+
+        ortModelReady  = true;
+        ortModelLoading = false;
         updatePill('pill-camera', 'AI ✓', 'green');
-        console.log('[TF.js] Warmup selesai, model siap!');
+        
+        console.log('[ONNX] Warmup selesai, model siap!');
+        updateAppStatus('Pilih Kamera & Mulai Deteksi');
     } catch (err) {
-        tfModelLoading = false;
-        console.error('[TF.js] Gagal load model:', err);
-        // Lanjutkan tanpa model lokal (tampilkan peringatan)
+        ortModelLoading = false;
+        console.error('[ONNX] Gagal load model:', err);
         updatePill('pill-camera', 'AI ❌', 'red');
-        document.getElementById('hud-status').textContent =
-            '⚠️ Model AI belum tersedia. Jalankan convert_model.py lalu push ke server.';
+        updateAppStatus('Gagal memuat model. Periksa file .onnx!');
     }
 }
 

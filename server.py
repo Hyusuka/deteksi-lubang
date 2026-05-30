@@ -441,24 +441,6 @@ def get_potholes():
         return jsonify([])
 
 
-
-# ── API: list semua potholes ──
-@app.route('/api/potholes', methods=['GET'])
-def get_potholes():
-    if not _ensure_db():
-        return jsonify([])
-    try:
-        res = _supabase_client.table("potholes").select("*").order("id", desc=True).execute()
-        data = res.data or []
-        for r in data:
-            dia = r.get('diameter', 0.0) or 0.0
-            dep = r.get('depth', 0.0) or 0.0
-            r['volume'] = calculate_volume(dia, dep)
-        return jsonify(data)
-    except Exception as e:
-        logging.warning(f"Gagal fetch potholes: {e}")
-        return jsonify([])
-
 # ── API: statistik ──
 @app.route('/api/stats', methods=['GET'])
 def get_stats():
