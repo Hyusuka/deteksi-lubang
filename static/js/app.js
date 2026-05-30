@@ -118,17 +118,16 @@ async function launchApp() {
             return;
         }
 
-        // Step 3: Load TF.js model (on-device AI)
-        btn.innerHTML = '<span class="btn-icon">🧠</span><span>Memuat AI Model...</span>';
-        await loadTFModel();
-
-        // Step 4: Hide splash, show app
+        // Step 3: Hide splash, show app IMMEDIATELY
         document.getElementById('splash-screen').style.display = 'none';
         document.getElementById('app-container').style.display = 'block';
         isRunning = true;
 
-        // Step 5: Start detection loop
+        // Step 4: Start detection loop (will idle until model is ready)
         setTimeout(() => startDetectionLoop(), 500);
+
+        // Step 5: Load TF.js model in the BACKGROUND (no await)
+        loadTFModel();
 
     } catch (err) {
         console.error('Launch failed:', err);
