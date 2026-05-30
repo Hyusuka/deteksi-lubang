@@ -1,0 +1,23 @@
+description: Ultralytics pothole_YOLOv8 model trained on /kaggle/input/pothole-detection/pothole_dataset_v8/pothole_dataset_v8/pothole.yaml
+author: Ultralytics
+date: '2026-05-30T11:30:59.444974'
+version: 8.4.57
+license: AGPL-3.0 License (https://ultralytics.com/license)
+docs: https://docs.ultralytics.com
+stride: 32
+task: detect
+batch: 1
+imgsz:
+- 640
+- 640
+names:
+  0: pothole
+args:
+  data: null
+  batch: 1
+  fraction: 1.0
+  half: false
+  int8: false
+  nms: false
+channels: 3
+end2end: false

@@ -26,3 +26,5 @@ static/snapshots/*
 .idea/
 .DS_Store
 Thumbs.db
+
+pothole_yolov8.pt
