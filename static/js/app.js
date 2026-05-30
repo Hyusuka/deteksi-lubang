@@ -256,6 +256,11 @@ function startGPS() {
             },
             (err) => {
                 console.warn('getCurrentPosition gagal, mencoba watchPosition...', err);
+                // Cek apakah error karena izin ditolak (code 1) di dalam iframe (Hugging Face)
+                if (err.code === 1 && window.self !== window.top) {
+                    alert("⚠️ PERHATIAN: Akses GPS diblokir oleh sistem iframe Hugging Face.\n\nAgar GPS bisa berjalan, silakan buka aplikasi lewat Direct URL (keluar dari iframe Hugging Face).");
+                }
+                
                 // Fase 2: Fallback ke watchPosition jika getCurrentPosition gagal
                 _startGPSWatch();
                 // Beri timeout tambahan untuk watchPosition mendapat posisi pertama
