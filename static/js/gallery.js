@@ -264,3 +264,22 @@ async function deleteItem() {
         alert('Gagal menghapus data. Silakan coba lagi.');
     }
 }
+
+// ── Delete all ──
+async function deleteAll() {
+    if (!confirm(`YAKIN INGIN MENGHAPUS SEMUA DATA (${allData.length} item)? Aksi ini tidak dapat dibatalkan.`)) return;
+
+    try {
+        const response = await fetch(`/api/potholes/delete-all`, { method: 'DELETE' });
+        if (!response.ok) throw new Error('Network response was not ok');
+        
+        // Bersihkan data lokal
+        allData = [];
+        updateStats();
+        renderCards();
+        alert('Semua data berhasil dihapus.');
+    } catch (err) {
+        console.error('Gagal menghapus semua data:', err);
+        alert('Gagal menghapus semua data. Silakan coba lagi.');
+    }
+}

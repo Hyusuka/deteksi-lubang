@@ -623,6 +623,19 @@ def delete_pothole(pid):
         logging.exception(f"Gagal delete id={pid}:")
     return jsonify({'deleted': pid})
 
+@app.route('/api/potholes/delete-all', methods=['DELETE'])
+def delete_all_potholes():
+    if not _ensure_db():
+        return jsonify({'deleted': True, 'warning': 'DB tidak tersedia'})
+    try:
+        # Supabase requires a filter to delete all rows. Using a dummy condition like id > 0
+        _supabase_client.table("potholes").delete().gt("id", 0).execute()
+        logging.info("Deleted all potholes from Supabase")
+    except Exception as e:
+        logging.exception("Gagal delete semua potholes:")
+        return jsonify({'error': str(e)}), 500
+    return jsonify({'deleted': True})
+
 
 # ── Global Error Handler ──
 @app.errorhandler(Exception)
