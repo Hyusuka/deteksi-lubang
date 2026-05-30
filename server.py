@@ -367,6 +367,11 @@ def fallback_detect(frame):
 def index():
     return render_template('index.html')
 
+@app.route('/gallery')
+def gallery():
+    return render_template('gallery.html')
+
+
 @app.route('/stream')
 def sse_stream():
     q = broadcaster.listen()
@@ -908,14 +913,15 @@ def get_stats():
 # ── API: hapus record ──
 @app.route('/api/potholes/<int:pid>', methods=['DELETE'])
 def delete_pothole(pid):
+    if not _ensure_db():
+        return jsonify({'deleted': pid, 'warning': 'DB tidak tersedia'})
     try:
-        conn = get_db()
-        with conn.cursor() as cur:
-            cur.execute("DELETE FROM potholes WHERE id = %s", (pid,))
-        conn.close()
+        _supabase_client.table("potholes").delete().eq("id", pid).execute()
+        logging.info(f"Deleted pothole id={pid} from Supabase")
     except Exception as e:
         logging.exception(f"Gagal delete id={pid}:")
     return jsonify({'deleted': pid})
+
 
 # ── Global Error Handler ──
 @app.errorhandler(Exception)

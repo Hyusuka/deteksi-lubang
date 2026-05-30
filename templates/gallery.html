@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="description" content="Galeri Deteksi Lubang Jalan — Semua foto tangkapan kamera dengan klasifikasi data otomatis">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Galeri Deteksi — Pothole Scanner</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <meta name="theme-color" content="#0A0D12">
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="/static/css/gallery.css">
+</head>
+<body class="gallery-body">
+
+    <!-- ═══════════ TOP NAV BAR ═══════════ -->
+    <nav class="gallery-nav">
+        <a href="/" class="nav-back" title="Kembali ke Deteksi">
+            <span class="nav-back-icon">←</span>
+            <span>Kembali</span>
+        </a>
+        <h1 class="nav-title">📸 Galeri Deteksi</h1>
+        <div class="nav-actions">
+            <button class="nav-btn" onclick="refreshGallery()" title="Refresh">🔄</button>
+        </div>
+    </nav>
+
+    <!-- ═══════════ STATS OVERVIEW CARDS ═══════════ -->
+    <section class="gallery-stats" id="gallery-stats">
+        <div class="stat-card stat-total">
+            <div class="stat-icon">📊</div>
+            <div class="stat-info">
+                <span class="stat-number" id="stat-total">0</span>
+                <span class="stat-label">Total Deteksi</span>
+            </div>
+        </div>
+        <div class="stat-card stat-high">
+            <div class="stat-icon">🔴</div>
+            <div class="stat-info">
+                <span class="stat-number" id="stat-high">0</span>
+                <span class="stat-label">Bahaya Tinggi</span>
+            </div>
+        </div>
+        <div class="stat-card stat-medium">
+            <div class="stat-icon">🟡</div>
+            <div class="stat-info">
+                <span class="stat-number" id="stat-medium">0</span>
+                <span class="stat-label">Sedang</span>
+            </div>
+        </div>
+        <div class="stat-card stat-low">
+            <div class="stat-icon">🟢</div>
+            <div class="stat-info">
+                <span class="stat-number" id="stat-low">0</span>
+                <span class="stat-label">Rendah</span>
+            </div>
+        </div>
+    </section>
+
+    <!-- ═══════════ FILTER & SORT BAR ═══════════ -->
+    <section class="gallery-toolbar">
+        <div class="filter-chips" id="filter-chips">
+            <button class="chip active" data-filter="all" onclick="setFilter('all')">Semua</button>
+            <button class="chip" data-filter="High" onclick="setFilter('High')">🔴 High</button>
+            <button class="chip" data-filter="Medium" onclick="setFilter('Medium')">🟡 Medium</button>
+            <button class="chip" data-filter="Low" onclick="setFilter('Low')">🟢 Low</button>
+        </div>
+        <div class="sort-select-wrapper">
+            <select id="sort-select" class="sort-select" onchange="setSort(this.value)">
+                <option value="newest">Terbaru</option>
+                <option value="oldest">Terlama</option>
+                <option value="severity">Severity ↓</option>
+                <option value="confidence">Confidence ↓</option>
+            </select>
+        </div>
+    </section>
+
+    <!-- ═══════════ GALLERY GRID ═══════════ -->
+    <main class="gallery-main" id="gallery-main">
+        <div class="gallery-grid" id="gallery-grid">
+            <!-- Cards will be injected by JS -->
+        </div>
+
+        <!-- Empty state -->
+        <div class="gallery-empty" id="gallery-empty" style="display:none;">
+            <div class="empty-icon">📷</div>
+            <h2>Belum Ada Tangkapan</h2>
+            <p>Mulai deteksi di halaman utama untuk menangkap foto lubang jalan secara otomatis.</p>
+            <a href="/" class="btn-back-home">
+                <span>▶</span> Mulai Deteksi
+            </a>
+        </div>
+
+        <!-- Loading state -->
+        <div class="gallery-loading" id="gallery-loading">
+            <div class="loading-spinner"></div>
+            <p>Memuat data galeri...</p>
+        </div>
+    </main>
+
+    <!-- ═══════════ DETAIL MODAL (LIGHTBOX) ═══════════ -->
+    <div id="detail-modal" class="detail-modal" style="display:none;">
+        <div class="detail-modal-backdrop" onclick="closeDetail()"></div>
+        <div class="detail-modal-content">
+            <div class="detail-header">
+                <h3 id="detail-title">🔍 Detail Lubang #--</h3>
+                <button class="detail-close" onclick="closeDetail()">✕</button>
+            </div>
+            <div class="detail-body">
+                <!-- Photo -->
+                <div class="detail-photo-wrap">
+                    <img id="detail-img" src="" alt="Foto deteksi lubang jalan">
+                </div>
+
+                <!-- Classification badge -->
+                <div class="detail-classification" id="detail-classification">
+                    <span class="detail-sev-badge" id="detail-sev-badge">--</span>
+                    <span class="detail-conf" id="detail-conf">Confidence: --%</span>
+                </div>
+
+                <!-- Data grid -->
+                <div class="detail-data-grid">
+                    <div class="detail-data-card">
+                        <span class="dd-icon">📏</span>
+                        <div class="dd-info">
+                            <span class="dd-label">Diameter</span>
+                            <span class="dd-value" id="detail-diameter">-- cm</span>
+                        </div>
+                    </div>
+                    <div class="detail-data-card">
+                        <span class="dd-icon">📐</span>
+                        <div class="dd-info">
+                            <span class="dd-label">Kedalaman</span>
+                            <span class="dd-value" id="detail-depth">-- cm</span>
+                        </div>
+                    </div>
+                    <div class="detail-data-card">
+                        <span class="dd-icon">🧊</span>
+                        <div class="dd-info">
+                            <span class="dd-label">Volume</span>
+                            <span class="dd-value" id="detail-volume">-- L</span>
+                        </div>
+                    </div>
+                    <div class="detail-data-card">
+                        <span class="dd-icon">🏎️</span>
+                        <div class="dd-info">
+                            <span class="dd-label">Kecepatan</span>
+                            <span class="dd-value" id="detail-speed">-- km/h</span>
+                        </div>
+                    </div>
+                    <div class="detail-data-card full">
+                        <span class="dd-icon">🕐</span>
+                        <div class="dd-info">
+                            <span class="dd-label">Waktu Deteksi</span>
+                            <span class="dd-value" id="detail-time">--</span>
+                        </div>
+                    </div>
+                    <div class="detail-data-card full">
+                        <span class="dd-icon">📍</span>
+                        <div class="dd-info">
+                            <span class="dd-label">Koordinat</span>
+                            <span class="dd-value" id="detail-coords">--</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Actions -->
+                <div class="detail-actions">
+                    <a id="detail-maps-btn" href="#" target="_blank" class="detail-btn-maps">
+                        📍 Buka di Google Maps
+                    </a>
+                    <button id="detail-delete-btn" class="detail-btn-delete" onclick="deleteItem()">
+                        🗑️ Hapus Data Ini
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/gallery.js"></script>
+</body>
+</html>
