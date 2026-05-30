@@ -1,5 +1,6 @@
 // ═══════════════════════════════════════════════
-// YOLOv9 Pothole Detector — Mobile App Logic
+// YOLOv8 Pothole Detector — On-Device TF.js
+// AI berjalan langsung di browser (tanpa kirim gambar ke server)
 // ═══════════════════════════════════════════════
 
 // ── State ──
@@ -13,9 +14,14 @@ let eventSource = null;
 // GPS state
 let gpsLat = 0, gpsLon = 0, gpsSpeed = 0, gpsHeading = 0, gpsAccuracy = 0;
 
+// ── ONNX Model State ──
+let ortSession = null;           // Model ONNX yang sudah di-load
+let ortModelLoading = false;   // Sedang loading?
+let ortModelReady  = false;    // Sudah siap?
+
 // Detection settings
-const DETECT_INTERVAL_MS = 800;
-let testMode = false; // Mode test static (tanpa GPS)
+const DETECT_INTERVAL_MS = 100;  // 100ms = max 10 FPS on-device (vs 800ms sebelumnya)
+let testMode = false;
 
 // ── Init ──
 document.addEventListener('DOMContentLoaded', () => {
@@ -112,13 +118,17 @@ async function launchApp() {
             return;
         }
 
-        // Step 3: Hide splash, show app
+        // Step 3: Load ONNX model (on-device AI)
+        btn.innerHTML = '<span class="btn-icon">🧠</span><span>Memuat AI Model...</span>';
+        await loadONNXModel();
+
+        // Step 4: Hide splash, show app
         document.getElementById('splash-screen').style.display = 'none';
         document.getElementById('app-container').style.display = 'block';
         isRunning = true;
 
-        // Step 4: Start detection loop after camera stabilizes
-        setTimeout(() => startDetectionLoop(), 1000);
+        // Step 5: Start detection loop
+        setTimeout(() => startDetectionLoop(), 500);
 
     } catch (err) {
         console.error('Launch failed:', err);
@@ -301,43 +311,80 @@ function stopGPS() {
 }
 
 // ═══════════════════════════════════════════════
-// 3. DETECTION LOOP — Capture frame → send to server
+        console.log('[TF.js] Backend:', tf.getBackend());
+
+        // Load model dari folder static/tfjs_model/
+        tfModel = await tf.loadGraphModel('/static/tfjs_model/model.json');
+        console.log('[TF.js] Model loaded successfully!');
+
+        // Warmup run: jalankan dummy inference agar JIT compilation selesai
+        const dummy = tf.zeros([1, 3, 640, 640]);
+        const warmupOut = tfModel.predict(dummy);
+        if (Array.isArray(warmupOut)) warmupOut.forEach(t => t.dispose());
+        else warmupOut.dispose();
+        dummy.dispose();
+
+        tfModelReady  = true;
+        tfModelLoading = false;
+        updatePill('pill-camera', 'AI ✓', 'green');
+        console.log('[TF.js] Warmup selesai, model siap!');
+    } catch (err) {
+        tfModelLoading = false;
+        console.error('[TF.js] Gagal load model:', err);
+        // Lanjutkan tanpa model lokal (tampilkan peringatan)
+        updatePill('pill-camera', 'AI ❌', 'red');
+        document.getElementById('hud-status').textContent =
+            '⚠️ Model AI belum tersedia. Jalankan convert_model.py lalu push ke server.';
+    }
+}
+
+// ═══════════════════════════════════════════════
+// 3. DETECTION LOOP — On-Device ONNX Inference
+//    AI berjalan di GPU browser, tidak ada network call untuk deteksi!
 // ═══════════════════════════════════════════════
 function startDetectionLoop() {
     const video = document.getElementById('camera-video');
-    const captureCanvas = document.createElement('canvas');
-    const captureCtx = captureCanvas.getContext('2d');
-    let frameCount = 0;
-    let lastFpsTime = Date.now();
+    let frameCount   = 0;
+    let lastFpsTime  = Date.now();
+    let isProcessing = false; // Cegah overlap inference
 
     detectionLoop = setInterval(async () => {
-        if (!video.videoWidth || video.paused) return;
+        if (!video.videoWidth || video.paused || !ortModelReady || isProcessing) return;
 
-        captureCanvas.width = video.videoWidth;
-        captureCanvas.height = video.videoHeight;
-        captureCtx.drawImage(video, 0, 0);
-
-        const frameData = captureCanvas.toDataURL('image/jpeg', 0.7);
+        isProcessing = true;
+        const t0 = performance.now();
 
         try {
-            const resp = await fetch('/api/detect-frame', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    frame: frameData,
-                    latitude: gpsLat,
-                    longitude: gpsLon,
-                    speed: gpsSpeed
-                })
-            });
+            // ── 1. Preprocess frame (video → Float32Array 640x640 NCHW) ──
+            const inputData = preprocessVideoFrame(video);
+            const inputTensor = new ort.Tensor('float32', inputData, [1, 3, 640, 640]);
 
-            if (!resp.ok) return;
-            const result = await resp.json();
+            // ── 2. Run inference LOKAL di WebGL GPU ──
+            const inputName = ortSession.inputNames[0];
+            const feeds = {};
+            feeds[inputName] = inputTensor;
+            const results = await ortSession.run(feeds);
 
-            drawDetections(result.detections, video.videoWidth, video.videoHeight);
-            document.getElementById('m-inference').textContent = result.inference_ms;
+            // ── 3. Ambil data output ──
+            const outputName = ortSession.outputNames[0];
+            const outputTensor = results[outputName];
+            
+            const inferenceMs = Math.round(performance.now() - t0);
 
-            // FPS counter
+            // ── 4. Decode output YOLO ──
+            const detections = decodeYOLOOutput(
+                outputTensor.data,
+                outputTensor.dims,
+                video.videoWidth,
+                video.videoHeight,
+                0.30,  // confidence threshold
+                0.45   // IoU threshold NMS
+            );
+
+            // ── 5. Gambar bounding box di canvas overlay ──
+            drawDetections(detections, video.videoWidth, video.videoHeight);
+
+            // ── 6. Update FPS counter ──
             frameCount++;
             const now = Date.now();
             if (now - lastFpsTime >= 1000) {
@@ -345,16 +392,81 @@ function startDetectionLoop() {
                 frameCount = 0;
                 lastFpsTime = now;
                 document.getElementById('badge-fps').textContent =
-                    `FPS: ${fps} | ${result.inference_ms}ms`;
+                    `FPS: ${fps} | ${inferenceMs}ms`;
+                document.getElementById('m-inference').textContent = inferenceMs;
             }
 
-            if (result.saved && result.saved.length > 0) {
-                result.saved.forEach(det => triggerWarning(det));
+            // ── 7. Jika ada deteksi → simpan ke server (hanya data teks + thumbnail) ──
+            if (detections.length > 0) {
+                // Ambil deteksi dengan confidence tertinggi
+                const best = detections.reduce((a, b) =>
+                    a.confidence > b.confidence ? a : b
+                );
+                await saveDetectionToServer(best, video);
             }
-        } catch (e) {
-            // Network error, silently continue
+
+        } catch (err) {
+            console.error('[DetectionLoop] Error:', err);
+        } finally {
+            isProcessing = false;
         }
     }, DETECT_INTERVAL_MS);
+}
+
+/**
+ * Kirim hasil deteksi ke server — HANYA data teks + thumbnail kecil
+ * (tidak ada raw frame besar yang dikirim, server tidak perlu OpenCV)
+ */
+async function saveDetectionToServer(det, video) {
+    try {
+        // Buat thumbnail kecil (320×240) dari video
+        const thumbCanvas = document.createElement('canvas');
+        thumbCanvas.width  = 320;
+        thumbCanvas.height = 240;
+        const tCtx = thumbCanvas.getContext('2d');
+        tCtx.drawImage(video, 0, 0, 320, 240);
+
+        // Gambar bounding box ke thumbnail juga
+        const scaleX = 320 / video.videoWidth;
+        const scaleY = 240 / video.videoHeight;
+        const color = det.severity === 'High' ? '#FF3B30'
+                    : det.severity === 'Medium' ? '#FF9F0A'
+                    : '#34C759';
+        tCtx.strokeStyle = color;
+        tCtx.lineWidth = 2;
+        tCtx.strokeRect(
+            det.x1 * scaleX, det.y1 * scaleY,
+            (det.x2 - det.x1) * scaleX,
+            (det.y2 - det.y1) * scaleY
+        );
+
+        const snapshotB64 = thumbCanvas.toDataURL('image/jpeg', 0.75);
+
+        const resp = await fetch('/api/save-detection', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                latitude:    gpsLat,
+                longitude:   gpsLon,
+                speed:       Math.round((gpsSpeed || 0) * 3.6 * 10) / 10,
+                severity:    det.severity,
+                confidence:  det.confidence,
+                diameter:    det.diameter,
+                depth:       det.depth,
+                snapshot_b64: snapshotB64
+            })
+        });
+
+        if (resp.ok) {
+            const result = await resp.json();
+            if (result.saved && result.record) {
+                triggerWarning(result.record);
+            }
+        }
+    } catch (err) {
+        // Network error — deteksi tetap berjalan
+        console.warn('[SaveDetection] Gagal simpan ke server:', err.message);
+    }
 }
 
 function stopDetectionLoop() {
@@ -401,8 +513,10 @@ function drawDetections(detections, vw, vh) {
         ctx.beginPath(); ctx.moveTo(x2 - cornerLen, y2); ctx.lineTo(x2, y2); ctx.lineTo(x2, y2 - cornerLen); ctx.stroke();
 
         // Label
-        const label = `YOLOv9: ${cls} ${(confidence * 100).toFixed(0)}%`;
-        ctx.font = 'bold 14px Outfit';
+        const clsName = det.className || det.class || 'pothole';
+        const sevLabel = det.severity ? ` [${det.severity}]` : '';
+        const label = `${clsName} ${(confidence * 100).toFixed(0)}%${sevLabel}`;
+        ctx.font = 'bold 13px Outfit';
         const tw = ctx.measureText(label).width;
         ctx.fillStyle = color;
         ctx.fillRect(x1, y1 - 22, tw + 12, 22);
@@ -809,29 +923,46 @@ async function runTestDetect(dataUrl) {
     img.src = dataUrl;
     resultBox.textContent = '⏳ Menjalankan deteksi...';
 
-    let response;
-    try {
-        response = await fetch('/api/test-detect', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ frame: dataUrl })
-        });
-    } catch (err) {
-        resultBox.textContent = `❌ Gagal koneksi ke server: ${err.message}`;
+    // ── Gunakan ONNX lokal jika model sudah siap ──
+    if (!ortModelReady) {
+        resultBox.textContent = '⚠️ Model AI belum dimuat. Tekan Mulai Deteksi terlebih dahulu agar model di-load, lalu buka Test Mode.';
         return;
     }
 
-    if (!response.ok) {
-        try {
-            const errData = await response.json();
-            resultBox.textContent = `❌ Server error: ${response.status}\nDetail: ${errData.message || errData.error}`;
-        } catch (e) {
-            resultBox.textContent = `❌ Server error: ${response.status} ${response.statusText}`;
-        }
-        return;
-    }
+    resultBox.textContent = '⏳ Menjalankan inferensi lokal (on-device)...';
 
-    const result = await response.json();
+    // Load image ke HTMLImageElement untuk diproses
+    const imgEl = document.getElementById('test-preview-img');
+    // Tunggu gambar dimuat
+    await new Promise(resolve => {
+        if (imgEl.complete && imgEl.naturalWidth) { resolve(); return; }
+        imgEl.onload = resolve;
+    });
+
+    const t0 = performance.now();
+
+    // Preprocess gambar 
+    const inputData = preprocessVideoFrame(imgEl);
+    const inputTensor = new ort.Tensor('float32', inputData, [1, 3, 640, 640]);
+
+    // Jalankan inferensi
+    const inputName = ortSession.inputNames[0];
+    const feeds = {};
+    feeds[inputName] = inputTensor;
+    const results = await ortSession.run(feeds);
+    const outputTensor = results[ortSession.outputNames[0]];
+
+    const inferenceMs = Math.round(performance.now() - t0);
+    const detections = decodeYOLOOutput(outputTensor.data, outputTensor.dims, imgEl.naturalWidth, imgEl.naturalHeight, 0.25, 0.45);
+
+    // Buat objek result yang kompatibel dengan kode di bawah
+    const result = {
+        detections: detections,
+        rejected: [],
+        inference_ms: inferenceMs,
+        frame_size: { w: imgEl.naturalWidth, h: imgEl.naturalHeight },
+        config: { model: 'ONNX (on-device)', conf_threshold: 0.25, roi_bottom_frac: 'N/A', min_aspect_ratio: 'N/A', max_aspect_ratio: 'N/A' }
+    };
 
     // Gambar bounding box di atas canvas overlay
     img.onload = () => {

@@ -8,13 +8,8 @@ import logging
 from flask import Flask, render_template, jsonify, request, Response, send_from_directory
 from dotenv import load_dotenv
 
-# ⚠️ numpy dan cv2 SENGAJA tidak diimport di sini.
-# Mereka diimport di dalam load_model_lazy() pada request pertama.
-# Tujuan: startup Python selesai < 0.1 detik → mencegah 503 di Phusion Passenger.
-np = None
-cv2 = None
-
 load_dotenv()
+
 
 # ──────────────────────────────────────────────
 # Konfigurasi Logging Ke File 'app.log'
@@ -30,58 +25,17 @@ logging.basicConfig(
 )
 
 app = Flask(__name__, template_folder='templates', static_folder='static')
+
+# ──────────────────────────────────────────────
+# Server: TIDAK lagi menjalankan model AI.
+# Deteksi YOLO sekarang berjalan on-device di browser via TF.js.
+# Server hanya menyimpan data ke Supabase & menyajikan halaman web.
+# ──────────────────────────────────────────────
+
 SNAPSHOT_DIR = os.path.join('static', 'snapshots')
 
 # Pastikan folder snapshot ada
 os.makedirs(SNAPSHOT_DIR, exist_ok=True)
-
-# ──────────────────────────────────────────────
-# YOLOv9 Model Loader
-# ──────────────────────────────────────────────
-
-YOLO_MODEL      = None
-_model_loaded   = False
-
-MODEL_PATH = os.environ.get('YOLO_MODEL', 'yolov9-pothole.pt')
-ROBOFLOW_API_KEY = os.environ.get('ROBOFLOW_API_KEY', '')
-ROBOFLOW_MODEL   = os.environ.get('ROBOFLOW_MODEL', 'pothole-detection-i00zy/3')
-
-def load_model_lazy():
-    global YOLO_MODEL, _model_loaded, np, cv2
-    if _model_loaded:
-        return
-
-    # Import numpy dan cv2 sekarang (lazy) — memerlukan ~1-2 detik, tapi tidak memblokir startup
-    if np is None:
-        import numpy as _np
-        import builtins
-        builtins.__dict__['np']  = _np   # buat tersedia secara global
-        globals()['np']  = _np
-    if cv2 is None:
-        import cv2 as _cv2
-        import builtins
-        builtins.__dict__['cv2'] = _cv2
-        globals()['cv2'] = _cv2
-
-    logging.info("Memulai pemuatan model YOLO (Ultralytics) secara LAZY...")
-
-    try:
-        from ultralytics import YOLO
-        logging.info(f"Loading YOLOv9 via ultralytics: {MODEL_PATH}")
-        YOLO_MODEL = YOLO(MODEL_PATH)
-        dummy = np.zeros((640, 640, 3), dtype=np.uint8)
-        YOLO_MODEL(dummy, verbose=False)
-        logging.info("YOLOv9 model (ultralytics) loaded & warmed up successfully.")
-    except ImportError:
-        logging.warning("ultralytics tidak terinstall.")
-    except Exception as e:
-        logging.warning(f"Gagal load ultralytics model: {e}")
-
-    if YOLO_MODEL is None:
-        logging.warning("Tidak ada YOLO model yang berhasil dimuat — menggunakan Fallback OpenCV Detector.")
-    
-    _model_loaded = True
-
 
 # ──────────────────────────────────────────────
 # Filter Konfigurasi — Konteks Jalan Raya
@@ -147,19 +101,6 @@ def _ensure_db():
             logging.error(f"Supabase init failed: {e}")
     return _db_available
 
-    _db_checked = True
-    try:
-        conn = get_db()
-        conn.close()
-        _db_available = True
-        logging.info(f"Terhubung ke MySQL: {DB_USER}@{DB_HOST}/{DB_NAME}")
-    except Exception as e:
-        _db_available = False
-        logging.warning(
-            f"Gagal terhubung ke MySQL ({e}). "
-            "Data deteksi TIDAK akan disimpan sampai DB dikonfigurasi."
-        )
-    return _db_available
 
 # ──────────────────────────────────────────────
 # Severity, Dimension, and Volume Estimation Helper
@@ -384,362 +325,122 @@ def sse_stream():
                 yield ": keepalive\n\n"
     return Response(gen(), mimetype='text/event-stream')
 
-# ── Core: receive a camera frame + GPS, run detection ──
-@app.route('/api/detect-frame', methods=['POST'])
-def detect_frame():
-    load_model_lazy()
-    data = request.json
-    if not data or 'frame' not in data:
-        return jsonify({'error': 'No frame data'}), 400
-
-    # Decode base64 JPEG frame
-    try:
-        img_bytes = base64.b64decode(data['frame'].split(',')[-1])
-        np_arr = np.frombuffer(img_bytes, np.uint8)
-        frame = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
-        if frame is None:
-            return jsonify({'error': 'Invalid image'}), 400
-    except Exception as e:
-        return jsonify({'error': f'Decode error: {e}'}), 400
-
-    fh, fw = frame.shape[:2]
-
-    # GPS & speed from client
-    latitude  = data.get('latitude', 0.0)
-    longitude = data.get('longitude', 0.0)
-    speed_mps = data.get('speed', 0)
-    speed_kmh = round((speed_mps or 0) * 3.6, 1)
-
-    # Cek & inisialisasi koneksi MySQL (lazy, pertama kali saja)
-    _ensure_db()
-
-    # ── Filter Kecepatan: abaikan saat kendaraan diam ──
-    # Ini mencegah deteksi palsu saat pengguna tidak sedang berkendara
-    # (misalnya sedang memotret lemari, duduk, atau berdiri)
-    if MIN_SPEED_KMH > 0 and speed_kmh < MIN_SPEED_KMH:
-        logging.info(f"[SKIP] Kendaraan diam/lambat ({speed_kmh} km/h < min {MIN_SPEED_KMH} km/h). Set MIN_SPEED_KMH=0 di .env untuk menonaktifkan.")
-        return jsonify({'detections': [], 'saved': [], 'inference_ms': 0, 'speed_kmh': speed_kmh, 'skipped': 'speed_too_low'})
-
-    # ── Run Roboflow API, YOLOv8 (ultralytics), atau Fallback ──
-    detections = []
-    inference_ms = 0
-
-    if ROBOFLOW_API_KEY:
-        t0 = time.time()
-        try:
-            import requests
-            base64_img = data['frame'].split(',')[-1]
-            roboflow_url = f"https://detect.roboflow.com/{ROBOFLOW_MODEL}"
-            
-            response = requests.post(
-                roboflow_url,
-                params={"api_key": ROBOFLOW_API_KEY},
-                data=base64_img,
-                headers={"Content-Type": "application/x-www-form-urlencoded"},
-                timeout=5.0
-            )
-            
-            if response.status_code == 200:
-                res_json = response.json()
-                inference_ms = round((time.time() - t0) * 1000, 1)
-                
-                for pred in res_json.get('predictions', []):
-                    rx = pred['x']
-                    ry = pred['y']
-                    rw = pred['width']
-                    rh = pred['height']
-                    
-                    x1 = int(rx - rw / 2)
-                    y1 = int(ry - rh / 2)
-                    x2 = int(rx + rw / 2)
-                    y2 = int(ry + rh / 2)
-                    
-                    detections.append({
-                        'x1': max(0, x1), 'y1': max(0, y1),
-                        'x2': min(fw, x2), 'y2': min(fh, y2),
-                        'confidence': round(float(pred['confidence']), 3),
-                        'class': pred['class']
-                    })
-                logging.info(f"Roboflow API inference completed: {len(detections)} detections found in {inference_ms}ms")
-            else:
-                logging.warning(f"Roboflow API error (status {response.status_code}): {response.text}")
-        except Exception as e:
-            logging.error(f"Gagal melakukan deteksi via Roboflow API: {e}")
-
-    # Jika Roboflow API tidak aktif atau gagal mendapat deteksi, gunakan model lokal jika ada
-    if not ROBOFLOW_API_KEY or (ROBOFLOW_API_KEY and not detections):
-        if YOLO_MODEL is not None:
-            # Mode: Ultralytics / PyTorch
-            t0 = time.time()
-            results = YOLO_MODEL(frame, verbose=False, conf=CONF_THRESHOLD)
-            if not detections:
-                inference_ms = round((time.time() - t0) * 1000, 1)
-
-            local_detections = []
-            for r in results:
-                for box in r.boxes:
-                    cls_id   = int(box.cls[0])
-                    conf     = float(box.conf[0])
-                    x1, y1, x2, y2 = map(int, box.xyxy[0].tolist())
-                    cls_name = r.names.get(cls_id, 'pothole')
-                    local_detections.append({
-                        'x1': x1, 'y1': y1, 'x2': x2, 'y2': y2,
-                        'confidence': round(conf, 3),
-                        'class': cls_name
-                    })
-            if not detections:
-                detections = local_detections
-        else:
-            # Mode 3: Fallback OpenCV (jika tidak ada model YOLO)
-            if not detections:
-                t0 = time.time()
-                detections = fallback_detect(frame)
-                inference_ms = round((time.time() - t0) * 1000, 1)
-
-    # ── Filter Berlapis: Konteks Jalan Raya ──
-    # Buang semua deteksi yang tidak memenuhi kriteria jalan raya
-    filtered_detections = []
-    for det in detections:
-        valid, reason = _is_valid_road_detection(det, fh, fw)
-        if not valid:
-            logging.debug(f"Deteksi dibuang [{det.get('class','?')} conf={det.get('confidence','?')}]: {reason}")
-            continue
-        if ROAD_COLOR_CHECK and not _has_road_color_context(frame, det):
-            logging.debug(f"Deteksi dibuang [{det.get('class','?')}]: warna sekitar bukan aspal/tanah")
-            continue
-        filtered_detections.append(det)
-
-    n_discarded = len(detections) - len(filtered_detections)
-    if n_discarded > 0:
-        logging.info(f"Filter konteks jalan: {n_discarded} deteksi palsu dibuang, {len(filtered_detections)} valid tersisa")
-
-    detections = filtered_detections
-
-    # ── Simpan ke MySQL (dengan cooldown agar hanya sekali simpan) ──
+# ── API: Terima hasil deteksi dari TF.js on-device ──
+# Browser menjalankan YOLO secara lokal (WebGL), lalu HANYA mengirim
+# data teks + thumbnail kecil ke endpoint ini untuk disimpan.
+# Tidak ada frame besar yang dikirim, tidak perlu OpenCV/NumPy di server.
+@app.route('/api/save-detection', methods=['POST'])
+def save_detection():
     global _last_saved_time
-    saved = []
+    data = request.json
+    if not data:
+        return jsonify({'error': 'No data'}), 400
 
     now = time.time()
-    cooldown_aktif = (now - _last_saved_time) < DETECTION_COOLDOWN_SEC
 
-    if detections and cooldown_aktif:
-        print(f"[INFO] Cooldown aktif, skip simpan. Sisa: {DETECTION_COOLDOWN_SEC - (now - _last_saved_time):.1f}s")
+    # ── Cooldown: simpan maks 1x per DETECTION_COOLDOWN_SEC ──
+    if (now - _last_saved_time) < DETECTION_COOLDOWN_SEC:
+        remaining = round(DETECTION_COOLDOWN_SEC - (now - _last_saved_time), 1)
+        logging.debug(f"[COOLDOWN] Skip simpan, sisa {remaining}s")
+        return jsonify({'saved': False, 'reason': f'cooldown ({remaining}s)'})
 
-    for det in detections:
-        cls_name = det['class']
-        bw = det['x2'] - det['x1']
-        confidence = det['confidence']
+    _last_saved_time = now
 
-        # Gunakan estimasi dimensi fisik & volume dinamis YOLOv9/v8
-        severity, diameter_cm, depth_cm, volume_liters = estimate_pothole_dimensions(bw, fw, cls_name)
+    # ── Ekstrak data dari browser ──
+    latitude   = float(data.get('latitude', 0))
+    longitude  = float(data.get('longitude', 0))
+    speed_kmh  = float(data.get('speed', 0))
+    severity   = data.get('severity', 'Low')
+    confidence = float(data.get('confidence', 0))
+    diameter   = float(data.get('diameter', 0))
+    depth      = float(data.get('depth', 0))
 
-        # Cek cooldown
-        if cooldown_aktif:
-            continue
+    # Hitung volume (server-side untuk konsistensi)
+    radius        = diameter / 2.0
+    volume_liters = max(0.1, round(0.5 * 3.14159 * (radius ** 2) * depth / 1000.0, 1))
 
-        # Set cooldown timer
-        _last_saved_time = now
+    # ── Simpan thumbnail snapshot ──
+    snap_name     = f"{uuid.uuid4().hex[:12]}.jpg"
+    snap_path     = os.path.join(SNAPSHOT_DIR, snap_name)
+    web_snap_path = f'/static/snapshots/{snap_name}'
 
-        # ── Simpan snapshot gambar lokal ──
-        snap_name  = f"{uuid.uuid4().hex[:12]}.jpg"
-        snap_path  = os.path.join(SNAPSHOT_DIR, snap_name)
-        snap_frame = frame.copy()
-
-        color = (0, 0, 255) if severity == 'High' else (0, 165, 255) if severity == 'Medium' else (0, 255, 0)
-        cv2.rectangle(snap_frame, (det['x1'], det['y1']), (det['x2'], det['y2']), color, 3)
-        label = f"{cls_name} {confidence*100:.0f}%"
-        cv2.putText(snap_frame, label, (det['x1'], det['y1'] - 8),
-                    cv2.FONT_HERSHEY_SIMPLEX, 0.7, color, 2)
-        cv2.imwrite(snap_path, snap_frame)
-
-        web_snap_path   = f'/static/snapshots/{snap_name}'
-        google_maps_url = f'https://www.google.com/maps?q={latitude},{longitude}'
-        timestamp_str   = time.strftime('%Y-%m-%d %H:%M:%S')
-
-        # ── Insert ke MySQL ──
-        new_id = int(time.time())
-        if _db_available:
-            try:
-                data = {
-                    "timestamp": timestamp_str,
-                    "latitude": latitude,
-                    "longitude": longitude,
-                    "speed": speed_kmh,
-                    "diameter": diameter_cm,
-                    "depth": depth_cm,
-                    "confidence": float(confidence),
-                    "severity": severity,
-                    "snapshot_path": web_snap_path,
-                    "google_maps_url": google_maps_url
-                }
-                res = _supabase_client.table("potholes").insert(data).execute()
-                if res.data:
-                    new_id = res.data[0]['id']
-                logging.info(f"Disimpan ke Supabase id={new_id}: {snap_name}")
-            except Exception as e:
-                logging.warning(f"Supabase insert gagal: {e}")
-        else:
-            logging.warning("Supabase tidak tersedia — deteksi TIDAK disimpan ke database.")
-
-        record = {
-            'id':             new_id,
-            'timestamp':      timestamp_str,
-            'latitude':       latitude,
-            'longitude':      longitude,
-            'speed':          speed_kmh,
-            'diameter':       diameter_cm,
-            'depth':          depth_cm,
-            'volume':         volume_liters,
-            'confidence':     confidence,
-            'severity':       severity,
-            'snapshot_path':  web_snap_path,
-            'google_maps_url': google_maps_url
-        }
-
-        saved.append(record)
-        broadcaster.broadcast(record)
-
-        # Hanya simpan 1 deteksi per cooldown window
-        break
-
-    return jsonify({
-        'detections': detections,
-        'saved': saved,
-        'inference_ms': inference_ms,
-        'speed_kmh': speed_kmh
-    })
-
-
-# ── API: Test Deteksi Statis (tanpa GPS / kecepatan) ──
-# Gunakan untuk menguji model dengan foto langsung dari browser
-@app.route('/api/test-detect', methods=['POST'])
-def test_detect():
-    """Endpoint khusus untuk mode TEST STATIC.
-    Tidak ada filter kecepatan, tidak menyimpan ke DB.
-    Mengembalikan semua deteksi + alasan filter setiap kotak.
-    """
-    load_model_lazy()
-    data = request.json
-    if not data or 'frame' not in data:
-        return jsonify({'error': 'No frame data'}), 400
-
-    try:
-        img_bytes = base64.b64decode(data['frame'].split(',')[-1])
-        np_arr = np.frombuffer(img_bytes, np.uint8)
-        frame = cv2.imdecode(np_arr, cv2.IMREAD_COLOR)
-        if frame is None:
-            return jsonify({'error': 'Invalid image'}), 400
-    except Exception as e:
-        return jsonify({'error': f'Decode error: {e}'}), 400
-
-    fh, fw = frame.shape[:2]
-
-    # ── Jalankan model (tanpa filter kecepatan) ──
-    raw_detections = []
-    inference_ms = 0
-
-    if ROBOFLOW_API_KEY:
-        t0 = time.time()
+    snapshot_b64 = data.get('snapshot_b64', '')
+    if snapshot_b64:
         try:
-            import requests
-            base64_img = data['frame'].split(',')[-1]
-            roboflow_url = f"https://detect.roboflow.com/{ROBOFLOW_MODEL}"
-            
-            response = requests.post(
-                roboflow_url,
-                params={"api_key": ROBOFLOW_API_KEY},
-                data=base64_img,
-                headers={"Content-Type": "application/x-www-form-urlencoded"},
-                timeout=5.0
-            )
-            
-            if response.status_code == 200:
-                res_json = response.json()
-                inference_ms = round((time.time() - t0) * 1000, 1)
-                
-                for pred in res_json.get('predictions', []):
-                    rx = pred['x']
-                    ry = pred['y']
-                    rw = pred['width']
-                    rh = pred['height']
-                    
-                    x1 = int(rx - rw / 2)
-                    y1 = int(ry - rh / 2)
-                    x2 = int(rx + rw / 2)
-                    y2 = int(ry + rh / 2)
-                    
-                    raw_detections.append({
-                        'x1': max(0, x1), 'y1': max(0, y1),
-                        'x2': min(fw, x2), 'y2': min(fh, y2),
-                        'confidence': round(float(pred['confidence']), 3),
-                        'class': pred['class']
-                    })
-            else:
-                logging.warning(f"Roboflow API error in test: {response.text}")
+            img_bytes = base64.b64decode(snapshot_b64.split(',')[-1])
+            with open(snap_path, 'wb') as f:
+                f.write(img_bytes)
         except Exception as e:
-            logging.error(f"Gagal deteksi test via Roboflow API: {e}")
+            logging.warning(f"Gagal simpan snapshot: {e}")
+            web_snap_path = ''
 
-    if not ROBOFLOW_API_KEY or (ROBOFLOW_API_KEY and not raw_detections):
-        if YOLO_MODEL is not None:
-            t0 = time.time()
-            results = YOLO_MODEL(frame, verbose=False, conf=CONF_THRESHOLD)
-            if not raw_detections:
-                inference_ms = round((time.time() - t0) * 1000, 1)
-            
-            local_detections = []
-            for r in results:
-                for box in r.boxes:
-                    cls_id   = int(box.cls[0])
-                    conf     = float(box.conf[0])
-                    x1, y1, x2, y2 = map(int, box.xyxy[0].tolist())
-                    cls_name = r.names.get(cls_id, 'pothole')
-                    local_detections.append({
-                        'x1': x1, 'y1': y1, 'x2': x2, 'y2': y2,
-                        'confidence': round(conf, 3),
-                        'class': cls_name
-                    })
-            if not raw_detections:
-                raw_detections = local_detections
-        else:
-            if not raw_detections:
-                t0 = time.time()
-                raw_detections = fallback_detect(frame)
-                inference_ms = round((time.time() - t0) * 1000, 1)
+    google_maps_url = f'https://www.google.com/maps?q={latitude},{longitude}'
+    timestamp_str   = time.strftime('%Y-%m-%d %H:%M:%S')
 
-    # ── Filter dengan alasan (untuk debugging) ──
-    passed = []
-    rejected = []
-    for det in raw_detections:
-        valid, reason = _is_valid_road_detection(det, fh, fw)
-        color_ok = True
-        if valid and ROAD_COLOR_CHECK:
-            color_ok = _has_road_color_context(frame, det)
+    # ── Simpan ke Supabase ──
+    new_id = int(now)
+    _ensure_db()
+    if _db_available:
+        try:
+            db_data = {
+                "timestamp":      timestamp_str,
+                "latitude":       latitude,
+                "longitude":      longitude,
+                "speed":          speed_kmh,
+                "diameter":       diameter,
+                "depth":          depth,
+                "confidence":     confidence,
+                "severity":       severity,
+                "snapshot_path":  web_snap_path,
+                "google_maps_url": google_maps_url
+            }
+            res = _supabase_client.table("potholes").insert(db_data).execute()
+            if res.data:
+                new_id = res.data[0]['id']
+            logging.info(f"[TF.js deteksi] id={new_id} sev={severity} conf={confidence:.2f} {snap_name}")
+        except Exception as e:
+            logging.warning(f"Supabase insert gagal: {e}")
+    else:
+        logging.warning("Supabase tidak tersedia — deteksi tidak disimpan ke DB.")
 
-        if valid and color_ok:
-            passed.append(det)
-        else:
-            det['reject_reason'] = reason if not valid else 'warna-bukan-aspal'
-            rejected.append(det)
+    record = {
+        'id':             new_id,
+        'timestamp':      timestamp_str,
+        'latitude':       latitude,
+        'longitude':      longitude,
+        'speed':          speed_kmh,
+        'diameter':       diameter,
+        'depth':          depth,
+        'volume':         volume_liters,
+        'confidence':     confidence,
+        'severity':       severity,
+        'snapshot_path':  web_snap_path,
+        'google_maps_url': google_maps_url
+    }
 
-    logging.info(
-        f"[TEST] frame={fw}x{fh} raw={len(raw_detections)} "
-        f"passed={len(passed)} rejected={len(rejected)} "
-        f"inference={inference_ms}ms model={'YOLO' if YOLO_MODEL else 'Fallback'}"
-    )
+    broadcaster.broadcast(record)
+    return jsonify({'saved': True, 'record': record})
 
-    return jsonify({
-        'detections': passed,
-        'rejected': rejected,
-        'inference_ms': inference_ms,
-        'frame_size': {'w': fw, 'h': fh},
-        'config': {
-            'conf_threshold': CONF_THRESHOLD,
-            'roi_bottom_frac': ROI_BOTTOM_FRAC,
-            'min_aspect_ratio': MIN_ASPECT_RATIO,
-            'max_aspect_ratio': MAX_ASPECT_RATIO,
-            'model': MODEL_PATH
-        }
-    })
+
+# ── API: list semua potholes ──
+@app.route('/api/potholes', methods=['GET'])
+def get_potholes():
+    if not _ensure_db():
+        return jsonify([])
+    try:
+        res = _supabase_client.table("potholes").select("*").order("id", desc=True).execute()
+        data = res.data or []
+        for r in data:
+            dia = r.get('diameter', 0.0) or 0.0
+            dep = r.get('depth', 0.0) or 0.0
+            radius = dia / 2.0
+            r['volume'] = max(0.1, round(0.5 * 3.14159 * (radius ** 2) * dep / 1000.0, 1))
+        return jsonify(data)
+    except Exception as e:
+        logging.warning(f"Gagal fetch potholes: {e}")
+        return jsonify([])
+
+
 
 # ── API: list semua potholes ──
 @app.route('/api/potholes', methods=['GET'])
