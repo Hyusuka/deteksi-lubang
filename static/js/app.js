@@ -330,6 +330,7 @@ async function loadONNXModel() {
         
         // Konfigurasi backend untuk performa maksimal
         ort.env.wasm.numThreads = 1; 
+        ort.env.wasm.wasmPaths = "https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/";
         
         // Load model .onnx
         ortSession = await ort.InferenceSession.create('/static/pothole_yolov8.onnx', {
