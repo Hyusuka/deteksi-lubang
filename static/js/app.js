@@ -336,7 +336,7 @@ async function loadONNXModel() {
     updatePill('pill-camera', 'AI ⏳', 'yellow');
 
     try {
-        updateAppStatus('Memuat AI ONNX...');
+        console.log('Memuat AI ONNX...');
         
         // Konfigurasi backend untuk performa maksimal
         ort.env.wasm.numThreads = 1; 
@@ -348,7 +348,7 @@ async function loadONNXModel() {
         console.log('[ONNX] Model loaded successfully!');
 
         // Warmup (opsional tapi disarankan agar frame pertama tidak ngelag)
-        updateAppStatus('Warmup AI...');
+        console.log('Warmup AI...');
         const dummyInput = new Float32Array(3 * 640 * 640);
         const tensor = new ort.Tensor('float32', dummyInput, [1, 3, 640, 640]);
         const inputName = ortSession.inputNames[0];
@@ -361,12 +361,12 @@ async function loadONNXModel() {
         updatePill('pill-camera', 'AI ✓', 'green');
         
         console.log('[ONNX] Warmup selesai, model siap!');
-        updateAppStatus('Pilih Kamera & Mulai Deteksi');
+        console.log('Pilih Kamera & Mulai Deteksi');
     } catch (err) {
         ortModelLoading = false;
         console.error('[ONNX] Gagal load model:', err);
         updatePill('pill-camera', 'AI ❌', 'red');
-        updateAppStatus('Gagal memuat model. Periksa file .onnx!');
+        console.error('Gagal memuat model. Periksa file .onnx!');
     }
 }
 
