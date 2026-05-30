@@ -14,10 +14,10 @@ let eventSource = null;
 // GPS state
 let gpsLat = 0, gpsLon = 0, gpsSpeed = 0, gpsHeading = 0, gpsAccuracy = 0;
 
-// ── ONNX Model State ──
-let ortSession = null;           // Model ONNX yang sudah di-load
-let ortModelLoading = false;   // Sedang loading?
-let ortModelReady  = false;    // Sudah siap?
+// ── TF.js Model State ──
+let tfModel = null;           // Model TF.js yang sudah di-load
+let tfModelLoading = false;   // Sedang loading?
+let tfModelReady  = false;    // Sudah siap?
 
 // Detection settings
 const DETECT_INTERVAL_MS = 100;  // 100ms = max 10 FPS on-device (vs 800ms sebelumnya)
@@ -118,9 +118,9 @@ async function launchApp() {
             return;
         }
 
-        // Step 3: Load ONNX model (on-device AI)
+        // Step 3: Load TF.js model (on-device AI)
         btn.innerHTML = '<span class="btn-icon">🧠</span><span>Memuat AI Model...</span>';
-        await loadONNXModel();
+        await loadTFModel();
 
         // Step 4: Hide splash, show app
         document.getElementById('splash-screen').style.display = 'none';
@@ -132,8 +132,7 @@ async function launchApp() {
 
     } catch (err) {
         console.error('Launch failed:', err);
-        alert("Terjadi kesalahan saat memulai sistem: " + err.message);
-        btn.innerHTML = '<span class="btn-icon">📍</span><span>Sistem Gagal — Coba Lagi</span>';
+        btn.innerHTML = '<span class="btn-icon">📍</span><span>GPS Ditolak — Izinkan & Coba Lagi</span>';
         btn.disabled = false;
     }
 }
@@ -257,11 +256,6 @@ function startGPS() {
             },
             (err) => {
                 console.warn('getCurrentPosition gagal, mencoba watchPosition...', err);
-                // Cek apakah error karena izin ditolak (code 1) di dalam iframe (Hugging Face)
-                if (err.code === 1 && window.self !== window.top) {
-                    alert("⚠️ PERHATIAN: Akses GPS diblokir oleh sistem iframe Hugging Face.\n\nAgar GPS bisa berjalan, silakan buka aplikasi lewat Direct URL (keluar dari iframe Hugging Face).");
-                }
-                
                 // Fase 2: Fallback ke watchPosition jika getCurrentPosition gagal
                 _startGPSWatch();
                 // Beri timeout tambahan untuk watchPosition mendapat posisi pertama
@@ -317,53 +311,47 @@ function stopGPS() {
 }
 
 // ═══════════════════════════════════════════════
-// 3. ONNX MODEL LOADER
+// 3. TF.js MODEL LOADER
 // ═══════════════════════════════════════════════
-async function loadONNXModel() {
-    if (ortModelReady || ortModelLoading) return;
-    ortModelLoading = true;
+async function loadTFModel() {
+    if (tfModelReady || tfModelLoading) return;
+    tfModelLoading = true;
 
     updatePill('pill-camera', 'AI ⏳', 'yellow');
 
     try {
-        console.log('Memuat AI ONNX...');
-        
-        // Konfigurasi backend untuk performa maksimal
-        ort.env.wasm.numThreads = 1; 
-        ort.env.wasm.wasmPaths = "https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/";
-        
-        // Load model .onnx dari folder static internal (bypass CDN/CORS)
-        ortSession = await ort.InferenceSession.create('/static/pothole_yolov8.onnx', {
-            executionProviders: ['webgl', 'wasm'] // Prioritas GPU (WebGL), fallback CPU (WASM)
-        });
-        console.log('[ONNX] Model loaded successfully!');
+        // Set backend ke WebGL untuk akselarasi GPU
+        await tf.setBackend('webgl');
+        await tf.ready();
+        console.log('[TF.js] Backend:', tf.getBackend());
 
-        // Warmup (opsional tapi disarankan agar frame pertama tidak ngelag)
-        console.log('Warmup AI...');
-        const dummyInput = new Float32Array(3 * 640 * 640);
-        const tensor = new ort.Tensor('float32', dummyInput, [1, 3, 640, 640]);
-        const inputName = ortSession.inputNames[0];
-        const feeds = {};
-        feeds[inputName] = tensor;
-        await ortSession.run(feeds);
+        // Load model dari folder static/tfjs_model/
+        tfModel = await tf.loadGraphModel('/static/tfjs_model/model.json');
+        console.log('[TF.js] Model loaded successfully!');
 
-        ortModelReady  = true;
-        ortModelLoading = false;
+        // Warmup run: jalankan dummy inference agar JIT compilation selesai
+        const dummy = tf.zeros([1, 3, 640, 640]);
+        const warmupOut = tfModel.predict(dummy);
+        if (Array.isArray(warmupOut)) warmupOut.forEach(t => t.dispose());
+        else warmupOut.dispose();
+        dummy.dispose();
+
+        tfModelReady  = true;
+        tfModelLoading = false;
         updatePill('pill-camera', 'AI ✓', 'green');
-        
-        console.log('[ONNX] Warmup selesai, model siap!');
-        console.log('Pilih Kamera & Mulai Deteksi');
+        console.log('[TF.js] Warmup selesai, model siap!');
     } catch (err) {
-        ortModelLoading = false;
-        console.error('[ONNX] Gagal load model:', err);
-        alert("Gagal memuat AI: " + err.message);
+        tfModelLoading = false;
+        console.error('[TF.js] Gagal load model:', err);
+        // Lanjutkan tanpa model lokal (tampilkan peringatan)
         updatePill('pill-camera', 'AI ❌', 'red');
-        console.error('Gagal memuat model. Periksa file .onnx!');
+        document.getElementById('hud-status').textContent =
+            '⚠️ Model AI belum tersedia. Jalankan convert_model.py lalu push ke server.';
     }
 }
 
 // ═══════════════════════════════════════════════
-// 3. DETECTION LOOP — On-Device ONNX Inference
+// 3. DETECTION LOOP — On-Device TF.js Inference
 //    AI berjalan di GPU browser, tidak ada network call untuk deteksi!
 // ═══════════════════════════════════════════════
 function startDetectionLoop() {
@@ -373,32 +361,37 @@ function startDetectionLoop() {
     let isProcessing = false; // Cegah overlap inference
 
     detectionLoop = setInterval(async () => {
-        if (!video.videoWidth || video.paused || !ortModelReady || isProcessing) return;
+        if (!video.videoWidth || video.paused || !tfModelReady || isProcessing) return;
 
         isProcessing = true;
         const t0 = performance.now();
 
         try {
-            // ── 1. Preprocess frame (video → Float32Array 640x640 NCHW) ──
-            const inputData = preprocessVideoFrame(video);
-            const inputTensor = new ort.Tensor('float32', inputData, [1, 3, 640, 640]);
+            // ── 1. Preprocess frame (video → tensor) ──
+            const inputTensor = preprocessVideoFrame(video);
 
             // ── 2. Run inference LOKAL di WebGL GPU ──
-            const inputName = ortSession.inputNames[0];
-            const feeds = {};
-            feeds[inputName] = inputTensor;
-            const results = await ortSession.run(feeds);
+            const rawOutput = tfModel.predict(inputTensor);
+            inputTensor.dispose();
 
-            // ── 3. Ambil data output ──
-            const outputName = ortSession.outputNames[0];
-            const outputTensor = results[outputName];
-            
+            // ── 3. Ambil data dari GPU ke CPU (async) ──
+            let outputData;
+            if (Array.isArray(rawOutput)) {
+                // Beberapa model punya multiple output heads
+                outputData = await rawOutput[0].array();
+                rawOutput.forEach(t => t.dispose());
+            } else {
+                outputData = await rawOutput.array();
+                rawOutput.dispose();
+            }
+
             const inferenceMs = Math.round(performance.now() - t0);
 
             // ── 4. Decode output YOLO ──
+            // outputData shape: [1, numDims, 8400] → ambil batch pertama
+            const batch = outputData[0];
             const detections = decodeYOLOOutput(
-                outputTensor.data,
-                outputTensor.dims,
+                batch,
                 video.videoWidth,
                 video.videoHeight,
                 0.30,  // confidence threshold
@@ -947,15 +940,15 @@ async function runTestDetect(dataUrl) {
     img.src = dataUrl;
     resultBox.textContent = '⏳ Menjalankan deteksi...';
 
-    // ── Gunakan ONNX lokal jika model sudah siap ──
-    if (!ortModelReady) {
+    // ── Gunakan TF.js lokal jika model sudah siap ──
+    if (!tfModelReady) {
         resultBox.textContent = '⚠️ Model AI belum dimuat. Tekan Mulai Deteksi terlebih dahulu agar model di-load, lalu buka Test Mode.';
         return;
     }
 
     resultBox.textContent = '⏳ Menjalankan inferensi lokal (on-device)...';
 
-    // Load image ke HTMLImageElement untuk diproses
+    // Load image ke HTMLImageElement untuk diproses TF.js
     const imgEl = document.getElementById('test-preview-img');
     // Tunggu gambar dimuat
     await new Promise(resolve => {
@@ -965,19 +958,28 @@ async function runTestDetect(dataUrl) {
 
     const t0 = performance.now();
 
-    // Preprocess gambar 
-    const inputData = preprocessVideoFrame(imgEl);
-    const inputTensor = new ort.Tensor('float32', inputData, [1, 3, 640, 640]);
+    // Preprocess gambar (mirip dengan preprocessVideoFrame tapi dari <img>)
+    const inputTensor = tf.tidy(() => {
+        const frameTensor = tf.browser.fromPixels(imgEl);
+        const resized = tf.image.resizeBilinear(frameTensor, [640, 640]);
+        const normalized = resized.div(tf.scalar(255.0));
+        return normalized.expandDims(0).transpose([0, 3, 1, 2]);
+    });
 
-    // Jalankan inferensi
-    const inputName = ortSession.inputNames[0];
-    const feeds = {};
-    feeds[inputName] = inputTensor;
-    const results = await ortSession.run(feeds);
-    const outputTensor = results[ortSession.outputNames[0]];
+    const rawOutput = tfModel.predict(inputTensor);
+    inputTensor.dispose();
+
+    let outputData;
+    if (Array.isArray(rawOutput)) {
+        outputData = await rawOutput[0].array();
+        rawOutput.forEach(t => t.dispose());
+    } else {
+        outputData = await rawOutput.array();
+        rawOutput.dispose();
+    }
 
     const inferenceMs = Math.round(performance.now() - t0);
-    const detections = decodeYOLOOutput(outputTensor.data, outputTensor.dims, imgEl.naturalWidth, imgEl.naturalHeight, 0.25, 0.45);
+    const detections = decodeYOLOOutput(outputData[0], imgEl.naturalWidth, imgEl.naturalHeight, 0.25, 0.45);
 
     // Buat objek result yang kompatibel dengan kode di bawah
     const result = {
@@ -985,7 +987,7 @@ async function runTestDetect(dataUrl) {
         rejected: [],
         inference_ms: inferenceMs,
         frame_size: { w: imgEl.naturalWidth, h: imgEl.naturalHeight },
-        config: { model: 'ONNX (on-device)', conf_threshold: 0.25, roi_bottom_frac: 'N/A', min_aspect_ratio: 'N/A', max_aspect_ratio: 'N/A' }
+        config: { model: 'TF.js (on-device)', conf_threshold: 0.25, roi_bottom_frac: 'N/A', min_aspect_ratio: 'N/A', max_aspect_ratio: 'N/A' }
     };
 
     // Gambar bounding box di atas canvas overlay

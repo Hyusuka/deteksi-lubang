@@ -441,6 +441,24 @@ def get_potholes():
         return jsonify([])
 
 
+
+# ── API: list semua potholes ──
+@app.route('/api/potholes', methods=['GET'])
+def get_potholes():
+    if not _ensure_db():
+        return jsonify([])
+    try:
+        res = _supabase_client.table("potholes").select("*").order("id", desc=True).execute()
+        data = res.data or []
+        for r in data:
+            dia = r.get('diameter', 0.0) or 0.0
+            dep = r.get('depth', 0.0) or 0.0
+            r['volume'] = calculate_volume(dia, dep)
+        return jsonify(data)
+    except Exception as e:
+        logging.warning(f"Gagal fetch potholes: {e}")
+        return jsonify([])
+
 # ── API: statistik ──
 @app.route('/api/stats', methods=['GET'])
 def get_stats():
@@ -604,19 +622,6 @@ def delete_pothole(pid):
     except Exception as e:
         logging.exception(f"Gagal delete id={pid}:")
     return jsonify({'deleted': pid})
-
-@app.route('/api/potholes/delete-all', methods=['DELETE'])
-def delete_all_potholes():
-    if not _ensure_db():
-        return jsonify({'deleted': True, 'warning': 'DB tidak tersedia'})
-    try:
-        # Supabase requires a filter to delete all rows. Using a dummy condition like id > 0
-        _supabase_client.table("potholes").delete().gt("id", 0).execute()
-        logging.info("Deleted all potholes from Supabase")
-    except Exception as e:
-        logging.exception("Gagal delete semua potholes:")
-        return jsonify({'error': str(e)}), 500
-    return jsonify({'deleted': True})
 
 
 # ── Global Error Handler ──
