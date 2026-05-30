@@ -41,8 +41,15 @@ function registerServiceWorker() {
 
 async function initCameraList() {
     const select = document.getElementById('camera-select');
+    let permissionStream = null;
     try {
-        await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+        // Minta izin kamera singkat lalu LANGSUNG STOP stream-nya
+        // agar tidak mengunci kamera saat startCamera() dipanggil nanti
+        permissionStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+        // Hentikan stream izin segera — kamera harus bebas
+        permissionStream.getTracks().forEach(t => t.stop());
+        permissionStream = null;
+
         const devices = await navigator.mediaDevices.enumerateDevices();
         const videoDevices = devices.filter(d => d.kind === 'videoinput');
         
@@ -52,18 +59,32 @@ async function initCameraList() {
             return;
         }
 
+        let backCameraFound = false;
         videoDevices.forEach((device, index) => {
             const option = document.createElement('option');
             option.value = device.deviceId;
-            option.text = device.label || `Kamera Eksternal/Internal ${index + 1}`;
+            const label = device.label || `Kamera ${index + 1}`;
+            option.text = label;
             
-            if (device.label.toLowerCase().includes('back') || device.label.toLowerCase().includes('environment') || device.label.toLowerCase().includes('belakang')) {
+            // Auto-pilih kamera belakang
+            const labelLow = label.toLowerCase();
+            if (!backCameraFound && (labelLow.includes('back') || labelLow.includes('environment') || labelLow.includes('belakang') || labelLow.includes('rear'))) {
                 option.selected = true;
+                backCameraFound = true;
             }
             select.appendChild(option);
         });
+
+        // Jika tidak ada label back terdeteksi, pilih kamera terakhir (biasanya kamera belakang di HP)
+        if (!backCameraFound && videoDevices.length > 1) {
+            select.selectedIndex = select.options.length - 1;
+        }
     } catch (err) {
         console.error('Gagal mendapatkan daftar kamera', err);
+        // Pastikan stream dilepas meskipun terjadi error
+        if (permissionStream) {
+            permissionStream.getTracks().forEach(t => t.stop());
+        }
         select.innerHTML = '<option value="">Izinkan akses kamera terlebih dahulu</option>';
     }
 }
@@ -113,32 +134,58 @@ async function startCamera() {
     const video = document.getElementById('camera-video');
     const select = document.getElementById('camera-select');
     const selectedDeviceId = select.value;
-    
-    let constraints = { video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false };
-    
-    // Jika pengguna memilih kamera spesifik dari dropdown
+
+    // Strategi 1: Gunakan deviceId yang dipilih di dropdown
     if (selectedDeviceId) {
-        constraints = { video: { deviceId: { exact: selectedDeviceId }, width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false };
+        try {
+            videoStream = await navigator.mediaDevices.getUserMedia({
+                video: { deviceId: { exact: selectedDeviceId }, width: { ideal: 1280 }, height: { ideal: 720 } },
+                audio: false
+            });
+            video.srcObject = videoStream;
+            await video.play();
+            _onCameraReady(video);
+            return true;
+        } catch (err) {
+            console.warn('Gagal buka kamera dengan deviceId, mencoba fallback facingMode...', err);
+        }
     }
 
+    // Strategi 2: Fallback ke facingMode environment (kamera belakang)
     try {
-        videoStream = await navigator.mediaDevices.getUserMedia(constraints);
+        videoStream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } },
+            audio: false
+        });
         video.srcObject = videoStream;
         await video.play();
-
-        const overlay = document.getElementById('camera-overlay');
-        video.addEventListener('loadedmetadata', () => {
-            overlay.width = video.videoWidth;
-            overlay.height = video.videoHeight;
-        });
-
-        updatePill('pill-camera', 'CAM', 'green');
+        _onCameraReady(video);
         return true;
     } catch (err) {
-        console.error('Camera error:', err);
+        console.warn('Gagal buka kamera facingMode environment, mencoba kamera apapun...', err);
+    }
+
+    // Strategi 3: Fallback terakhir — kamera apa saja yang tersedia
+    try {
+        videoStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+        video.srcObject = videoStream;
+        await video.play();
+        _onCameraReady(video);
+        return true;
+    } catch (err) {
+        console.error('Semua strategi kamera gagal:', err);
         updatePill('pill-camera', 'CAM ❌', 'red');
         return false;
     }
+}
+
+function _onCameraReady(video) {
+    const overlay = document.getElementById('camera-overlay');
+    video.addEventListener('loadedmetadata', () => {
+        overlay.width = video.videoWidth;
+        overlay.height = video.videoHeight;
+    });
+    updatePill('pill-camera', 'CAM', 'green');
 }
 
 function stopCamera() {
@@ -152,53 +199,96 @@ function stopCamera() {
 
 // ═══════════════════════════════════════════════
 // 2. GPS — Real position via Geolocation API
+//    Kompatibel dengan Safari iOS, Chrome Android
 // ═══════════════════════════════════════════════
+function _updateGPSData(pos) {
+    gpsLat = pos.coords.latitude;
+    gpsLon = pos.coords.longitude;
+    gpsSpeed = pos.coords.speed || 0;
+    gpsHeading = pos.coords.heading || 0;
+    gpsAccuracy = pos.coords.accuracy || 0;
+
+    const speedKmh = Math.round(gpsSpeed * 3.6);
+
+    // Update HUD (hanya jika elemen sudah ada di DOM)
+    const elLat = document.getElementById('hud-lat');
+    const elLon = document.getElementById('hud-lon');
+    const elSpeed = document.getElementById('hud-speed-val');
+    const elMSpeed = document.getElementById('m-speed');
+    if (elLat) elLat.textContent = `Lat: ${gpsLat.toFixed(6)}`;
+    if (elLon) elLon.textContent = `Lon: ${gpsLon.toFixed(6)}`;
+    if (elSpeed) elSpeed.textContent = speedKmh;
+    if (elMSpeed) elMSpeed.textContent = speedKmh;
+
+    updatePill('pill-gps', 'GPS', 'green');
+}
+
 function startGPS() {
     return new Promise((resolve, reject) => {
         if (!navigator.geolocation) {
-            reject(new Error('GPS tidak tersedia'));
+            reject(new Error('GPS tidak tersedia di browser ini'));
             return;
         }
 
-        let initialPositionFound = false;
+        let resolved = false;
 
-        gpsWatchId = navigator.geolocation.watchPosition(
+        // Fase 1: getCurrentPosition — cepat dan didukung baik oleh Safari
+        // Safari iOS sering gagal pada watchPosition langsung, tapi getCurrentPosition lebih stabil
+        navigator.geolocation.getCurrentPosition(
             (pos) => {
-                gpsLat = pos.coords.latitude;
-                gpsLon = pos.coords.longitude;
-                gpsSpeed = pos.coords.speed || 0;
-                gpsHeading = pos.coords.heading || 0;
-                gpsAccuracy = pos.coords.accuracy || 0;
-
-                const speedKmh = Math.round(gpsSpeed * 3.6);
-
-                // Update HUD
-                document.getElementById('hud-lat').textContent = `Lat: ${gpsLat.toFixed(6)}`;
-                document.getElementById('hud-lon').textContent = `Lon: ${gpsLon.toFixed(6)}`;
-                document.getElementById('hud-speed-val').textContent = speedKmh;
-                document.getElementById('m-speed').textContent = speedKmh;
-
-                // Update pills
-                updatePill('pill-gps', 'GPS', 'green');
-
-                if (!initialPositionFound) {
-                    initialPositionFound = true;
+                _updateGPSData(pos);
+                if (!resolved) {
+                    resolved = true;
                     resolve();
                 }
+                // Setelah posisi awal didapat, mulai watch untuk update kontinu
+                _startGPSWatch();
             },
             (err) => {
-                console.error('GPS error:', err);
-                updatePill('pill-gps', 'GPS ❌', 'red');
-                if (!initialPositionFound) {
-                    reject(err);
-                }
+                console.warn('getCurrentPosition gagal, mencoba watchPosition...', err);
+                // Fase 2: Fallback ke watchPosition jika getCurrentPosition gagal
+                _startGPSWatch();
+                // Beri timeout tambahan untuk watchPosition mendapat posisi pertama
+                setTimeout(() => {
+                    if (!resolved) {
+                        resolved = true;
+                        // Jika masih belum dapat posisi, resolve saja agar app bisa berjalan
+                        // GPS akan tetap mencoba di background via watchPosition
+                        console.warn('GPS timeout - app dilanjutkan tanpa posisi awal');
+                        updatePill('pill-gps', 'GPS ⏳', 'yellow');
+                        resolve();
+                    }
+                }, 10000);
             },
             {
                 enableHighAccuracy: true,
-                maximumAge: 1000,
-                timeout: 15000
+                maximumAge: 30000,  // Terima posisi cached hingga 30 detik (penting untuk Safari)
+                timeout: 15000      // Timeout lebih panjang untuk Safari iOS
             }
         );
+
+        function _startGPSWatch() {
+            if (gpsWatchId !== null) return; // Sudah dimulai
+            gpsWatchId = navigator.geolocation.watchPosition(
+                (pos) => {
+                    _updateGPSData(pos);
+                    if (!resolved) {
+                        resolved = true;
+                        resolve();
+                    }
+                },
+                (err) => {
+                    console.warn('watchPosition error:', err.message);
+                    // Jangan reject — biarkan app tetap jalan, GPS akan retry otomatis
+                    updatePill('pill-gps', 'GPS ⚠️', 'yellow');
+                },
+                {
+                    enableHighAccuracy: true,
+                    maximumAge: 5000,
+                    timeout: 30000  // Timeout sangat panjang untuk Safari
+                }
+            );
+        }
     });
 }
 
