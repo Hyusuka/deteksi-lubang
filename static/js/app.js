@@ -132,7 +132,18 @@ async function launchApp() {
 
     } catch (err) {
         console.error('Launch failed:', err);
-        btn.innerHTML = '<span class="btn-icon">📍</span><span>GPS Ditolak — Izinkan & Coba Lagi</span>';
+        
+        // Deteksi jika error karena iframe block (SecurityError atau Geolocation error)
+        if (window.self !== window.top) {
+            alert("⚠️ GPS DIBLOKIR BROWSER!\n\nAplikasi mendeteksi Anda sedang membuka web ini di dalam frame/hosting lain (pothole.my.id) yang memblokir GPS.\n\nKlik OK untuk membuka aplikasi secara langsung agar GPS berfungsi!");
+            // Paksa buka URL langsung di tab baru
+            window.open("https://hyusuka-pothole-scanner.hf.space", "_blank");
+        } else {
+            alert("Terjadi kesalahan saat memulai GPS/Kamera: " + err.message);
+        }
+
+        btn.innerHTML = '<span class="btn-icon">📍</span><span>GPS Ditolak — Buka Direct Link</span>';
+        btn.onclick = () => window.location.href = "https://hyusuka-pothole-scanner.hf.space";
         btn.disabled = false;
     }
 }
