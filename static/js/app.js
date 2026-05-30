@@ -332,9 +332,8 @@ async function loadONNXModel() {
         ort.env.wasm.numThreads = 1; 
         ort.env.wasm.wasmPaths = "https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/";
         
-        // Load model .onnx via LFS Resolve
-        const modelUrl = 'https://huggingface.co/spaces/Hyusuka/Pothole_Scanner/resolve/main/static/pothole_yolov8.onnx';
-        ortSession = await ort.InferenceSession.create(modelUrl, {
+        // Load model .onnx dari folder static internal (bypass CDN/CORS)
+        ortSession = await ort.InferenceSession.create('/static/pothole_yolov8.onnx', {
             executionProviders: ['webgl', 'wasm'] // Prioritas GPU (WebGL), fallback CPU (WASM)
         });
         console.log('[ONNX] Model loaded successfully!');
