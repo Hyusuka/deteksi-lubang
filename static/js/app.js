@@ -356,6 +356,7 @@ async function loadONNXModel() {
     } catch (err) {
         ortModelLoading = false;
         console.error('[ONNX] Gagal load model:', err);
+        alert("Gagal memuat AI: " + err.message);
         updatePill('pill-camera', 'AI ❌', 'red');
         console.error('Gagal memuat model. Periksa file .onnx!');
     }
