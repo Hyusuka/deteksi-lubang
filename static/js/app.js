@@ -155,7 +155,8 @@ function startGPS() {
                 gpsSpeed = pos.coords.speed ? (pos.coords.speed * 3.6) : 0; 
                 gpsAccuracy = pos.coords.accuracy;
                 
-                document.getElementById('hud-speed').textContent = `${Math.round(gpsSpeed)} km/h`;
+                const speedEl = document.getElementById('hud-speed-val');
+                if (speedEl) speedEl.textContent = Math.round(gpsSpeed);
                 updatePill('pill-gps', `GPS ±${Math.round(gpsAccuracy)}m`, 'green');
                 resolve(); 
             },
@@ -334,33 +335,23 @@ function setupBottomSheet() {
 }
 
 function appendLogItem(item) {
-    const list = document.getElementById('detection-list');
-    const noData = document.getElementById('no-data');
-    if (noData) noData.remove();
-
-    const li = document.createElement('div');
-    li.className = 'log-item';
+    const list = document.getElementById('log-body');
+    if (!list) return;
     
+    const tr = document.createElement('tr');
     let color = '#3b82f6';
     if (item.severity === 'High') color = '#ef4444';
     else if (item.severity === 'Medium') color = '#eab308';
-
-    const snapHtml = item.snapshot_path 
-        ? `<img src="${item.snapshot_path}" alt="Snap">` 
-        : `<div style="width:60px;height:60px;background:#334155;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:10px;">No Img</div>`;
-
-    li.innerHTML = `
-        ${snapHtml}
-        <div class="info">
-            <div class="time">${item.timestamp}</div>
-            <div class="details">Dia: ${item.diameter}cm | Dep: ${item.depth}cm</div>
-            <div class="details">GPS: ${item.latitude.toFixed(5)}, ${item.longitude.toFixed(5)}</div>
-        </div>
-        <div class="severity" style="color: ${color}; border: 1px solid ${color}; padding: 4px 8px; border-radius: 4px; font-weight:bold;">
-            ${item.severity}
-        </div>
+    
+    tr.innerHTML = `
+        <td>#${item.id}</td>
+        <td>${item.timestamp.substring(11,19)}</td>
+        <td>${Math.round(item.speed)} km/h</td>
+        <td style="color:${color};font-weight:bold;">${item.severity}</td>
+        <td><a href="${item.google_maps_url}" target="_blank">🗺️</a></td>
     `;
-    list.insertBefore(li, list.firstChild);
+    
+    list.insertBefore(tr, list.firstChild);
     if (list.children.length > 50) list.lastChild.remove();
 }
 
@@ -368,8 +359,8 @@ async function loadExistingData() {
     try {
         const res = await fetch('/api/potholes');
         const data = await res.json();
-        const list = document.getElementById('detection-list');
-        if (data.length > 0) {
+        const list = document.getElementById('log-body');
+        if (data.length > 0 && list) {
             list.innerHTML = '';
             data.forEach(item => appendLogItem(item));
         }
@@ -409,10 +400,6 @@ async function refreshStats() {
     try {
         const res = await fetch('/api/stats');
         const data = await res.json();
-        
-        document.getElementById('stat-total').textContent = data.total;
-        document.getElementById('stat-avg-dia').textContent = data.avg_diameter + 'cm';
-        document.getElementById('stat-avg-dep').textContent = data.avg_depth + 'cm';
 
         if (sevChart) {
             sevChart.data.datasets[0].data = [
