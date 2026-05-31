@@ -27,4 +27,4 @@ static/snapshots/*
 .DS_Store
 Thumbs.db
 
-pothole_yolov8.pt
+!pothole_yolov8.pt
