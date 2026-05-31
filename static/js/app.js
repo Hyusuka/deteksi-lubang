@@ -74,7 +74,7 @@ async function initCameraList() {
 
 async function launchApp() {
     const splash = document.getElementById('splash-screen');
-    const appUI = document.getElementById('app-ui');
+    const appUI = document.getElementById('app-container');
     
     splash.innerHTML = '<h2>🌍 Mengaktifkan GPS & Kamera...</h2><p style="color:#94a3b8;margin-top:10px;">Mohon izinkan akses Lokasi dan Kamera.</p>';
     
@@ -98,7 +98,7 @@ function stopSystem() {
     if (detectionLoop) clearInterval(detectionLoop);
     stopCamera();
     stopGPS();
-    document.getElementById('app-ui').style.display = 'none';
+    document.getElementById('app-container').style.display = 'none';
     document.getElementById('splash-screen').style.display = 'flex';
     document.getElementById('splash-screen').innerHTML = '<h2>⏹️ Sistem Dihentikan</h2><button onclick="location.reload()" style="margin-top:20px;padding:10px 20px;background:#4F46E5;color:white;border:none;border-radius:8px;">Mulai Ulang</button>';
 }
@@ -228,57 +228,70 @@ function startDetectionLoop() {
 }
 
 function drawBoundingBoxes(detections, videoW, videoH) {
-    const container = document.getElementById('bounding-box-container');
-    const uiRect = container.getBoundingClientRect();
+    const canvas = document.getElementById('camera-overlay');
+    if (!canvas) return;
     
-    container.innerHTML = '';
+    // Sync ukuran canvas dengan video render (menggunakan clientWidth/Height)
+    const video = document.getElementById('camera-video');
+    canvas.width = video.clientWidth;
+    canvas.height = video.clientHeight;
+    
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     if (!detections || detections.length === 0) {
-        document.getElementById('alert-flash').classList.remove('active');
+        document.getElementById('flash-overlay').classList.remove('active');
         return;
     }
 
-    const scaleX = uiRect.width / videoW;
-    const scaleY = uiRect.height / videoH;
+    // Scale dari resolusi asli video ke ukuran tampilan layar
+    const scaleX = canvas.width / videoW;
+    const scaleY = canvas.height / videoH;
 
     let highestSeverity = 'Low';
 
     detections.forEach(d => {
         const [x, y, w, h] = d.box;
         
-        const boxEl = document.createElement('div');
-        boxEl.className = 'bounding-box';
-        boxEl.style.left = (x * scaleX) + 'px';
-        boxEl.style.top = (y * scaleY) + 'px';
-        boxEl.style.width = (w * scaleX) + 'px';
-        boxEl.style.height = (h * scaleY) + 'px';
+        const scaledX = x * scaleX;
+        const scaledY = y * scaleY;
+        const scaledW = w * scaleX;
+        const scaledH = h * scaleY;
 
+        let color = '#3b82f6'; // Low (Blue)
         if (d.severity === 'High') {
-            boxEl.style.borderColor = '#ef4444';
-            boxEl.style.backgroundColor = 'rgba(239, 68, 68, 0.2)';
+            color = '#ef4444'; // Red
             highestSeverity = 'High';
         } else if (d.severity === 'Medium') {
-            boxEl.style.borderColor = '#eab308';
-            boxEl.style.backgroundColor = 'rgba(234, 179, 8, 0.2)';
+            color = '#eab308'; // Yellow
             if (highestSeverity !== 'High') highestSeverity = 'Medium';
         }
 
-        const labelEl = document.createElement('div');
-        labelEl.className = 'box-label';
-        labelEl.innerHTML = `<strong>${d.severity}</strong><br>Conf: ${(d.confidence*100).toFixed(0)}%<br>Dia: ${d.diameter}cm`;
+        // Draw Box
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 3;
+        ctx.strokeRect(scaledX, scaledY, scaledW, scaledH);
         
-        if (d.severity === 'High') labelEl.style.backgroundColor = '#ef4444';
-        else if (d.severity === 'Medium') labelEl.style.backgroundColor = '#eab308';
-
-        boxEl.appendChild(labelEl);
-        container.appendChild(boxEl);
+        // Draw Fill
+        ctx.fillStyle = color;
+        ctx.globalAlpha = 0.2;
+        ctx.fillRect(scaledX, scaledY, scaledW, scaledH);
+        
+        // Draw Label
+        ctx.globalAlpha = 1.0;
+        ctx.font = "14px 'Outfit', sans-serif";
+        ctx.fillStyle = color;
+        ctx.fillRect(scaledX, scaledY - 24, 180, 24);
+        
+        ctx.fillStyle = "#ffffff";
+        ctx.fillText(`${d.severity} - Conf: ${(d.confidence*100).toFixed(0)}%`, scaledX + 5, scaledY - 8);
     });
 
     if (highestSeverity === 'High' || highestSeverity === 'Medium') {
-        document.getElementById('alert-flash').classList.add('active');
+        document.getElementById('flash-overlay').classList.add('active');
         if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
     } else {
-        document.getElementById('alert-flash').classList.remove('active');
+        document.getElementById('flash-overlay').classList.remove('active');
     }
 }
 
@@ -367,7 +380,9 @@ async function loadExistingData() {
 
 // ── Chart.js ──
 function initChart() {
-    const ctx = document.getElementById('sevChart').getContext('2d');
+    const canvas = document.getElementById('severityChart');
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
     sevChart = new Chart(ctx, {
         type: 'doughnut',
         data: {
