@@ -111,12 +111,14 @@ async function loadAIModel() {
 async function launchApp() {
     const splash = document.getElementById('splash-screen');
     const appUI = document.getElementById('app-container');
+    const select = document.getElementById('camera-select');
+    const deviceId = select ? select.value : null;
     
     splash.innerHTML = '<h2>🌍 Mengaktifkan GPS & Kamera...</h2><p style="color:#94a3b8;margin-top:10px;">Mohon izinkan akses Lokasi dan Kamera.</p>';
     
     try {
         await startGPS();
-        await startCamera();
+        await startCamera(deviceId);
         
         splash.style.display = 'none';
         
@@ -150,10 +152,12 @@ function updatePill(id, text, colorClass) {
 }
 
 // ── CAMERA & GPS ──
-async function startCamera() {
+async function startCamera(deviceId) {
     const video = document.getElementById('camera-video');
-    const select = document.getElementById('camera-select');
-    const deviceId = select.value;
+    if (deviceId === undefined) {
+        const select = document.getElementById('camera-select');
+        deviceId = select ? select.value : null;
+    }
     const constraints = deviceId ? { video: { deviceId: { exact: deviceId } } } : { video: { facingMode: 'environment' } };
     try {
         videoStream = await navigator.mediaDevices.getUserMedia(constraints);
