@@ -1,4 +1,6 @@
 import os
+
+code = """import os
 import json
 import time
 import base64
@@ -51,7 +53,7 @@ class SSEBroadcaster:
         self.listeners.append(q)
         return q
     def broadcast(self, data_dict):
-        payload = f"data: {json.dumps(data_dict)}\n\n"
+        payload = f"data: {json.dumps(data_dict)}\\n\\n"
         for i in reversed(range(len(self.listeners))):
             try:
                 self.listeners[i].put_nowait(payload)
@@ -144,7 +146,7 @@ def sse_stream():
                 msg = q.get(timeout=20.0)
                 yield msg
             except queue.Empty:
-                yield ": keepalive\n\n"
+                yield ": keepalive\\n\\n"
     return Response(gen(), mimetype='text/event-stream')
 
 # ──────────────────────────────────────────────
@@ -342,3 +344,8 @@ def delete_pothole(pid):
 if __name__ == '__main__':
     # Pastikan server berjalan di 0.0.0.0 untuk Hugging Face Spaces Docker
     app.run(host='0.0.0.0', port=7860, debug=False)
+"""
+
+with open('server.py', 'w', encoding='utf-8') as f:
+    f.write(code)
+print("server.py completely regenerated to use Server-Side YOLO + Supabase")

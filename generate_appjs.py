@@ -1,4 +1,6 @@
-// ═══════════════════════════════════════════════
+import os
+
+code = """// ═══════════════════════════════════════════════
 // Pothole Detector — Client-Side Logic (Server-Side Inference)
 // ═══════════════════════════════════════════════
 
@@ -408,3 +410,8 @@ async function refreshStats() {
         }
     } catch (err) {}
 }
+"""
+
+with open('static/js/app.js', 'w', encoding='utf-8') as f:
+    f.write(code)
+print("app.js completely regenerated for Server-Side Inference")
