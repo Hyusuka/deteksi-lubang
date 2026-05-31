@@ -31,10 +31,7 @@ function registerServiceWorker() {
 
 async function initCameraList() {
     const select = document.getElementById('camera-select');
-    let permissionStream = null;
     try {
-        permissionStream = await navigator.mediaDevices.getUserMedia({ video: true });
-        permissionStream.getTracks().forEach(t => t.stop());
         const devices = await navigator.mediaDevices.enumerateDevices();
         const videoDevices = devices.filter(d => d.kind === 'videoinput');
         
@@ -433,7 +430,9 @@ async function saveDetection(det, video) {
 
 // ── Chart.js & UI ──
 function initChart() {
-    const ctx = document.getElementById('sevChart').getContext('2d');
+    const chartCanvas = document.getElementById('severityChart');
+    if (!chartCanvas) return;
+    const ctx = chartCanvas.getContext('2d');
     sevChart = new Chart(ctx, {
         type: 'doughnut',
         data: {
