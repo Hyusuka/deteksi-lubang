@@ -1,22 +1,22 @@
 // ═══════════════════════════════════════════════
-// Pothole Detector — Client-Side Logic (Server-Side Inference)
+// Pothole Detector — On-Device Inference (ONNX Web) 30 FPS
 // ═══════════════════════════════════════════════
 
 let videoStream = null;
 let gpsWatchId = null;
-let detectionLoop = null;
 let isRunning = false;
 let sevChart = null;
-let eventSource = null;
 
-let gpsLat = 0, gpsLon = 0, gpsSpeed = 0, gpsHeading = 0, gpsAccuracy = 0;
+let gpsLat = 0, gpsLon = 0, gpsSpeed = 0, gpsAccuracy = 0;
 
-const DETECT_INTERVAL_MS = 800; // Kirim frame tiap 800ms
+let yoloSession = null;
+let isModelLoading = false;
+const CONF_THRESHOLD = 0.25;
+const IOU_THRESHOLD = 0.45;
 
 document.addEventListener('DOMContentLoaded', () => {
     initChart();
     loadExistingData();
-    setupSSE();
     setupBottomSheet();
     registerServiceWorker();
     initCameraList();
@@ -26,20 +26,15 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function registerServiceWorker() {
-    if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.register('/static/sw.js')
-            .catch(err => console.error('PWA SW failed:', err));
-    }
+    if ('serviceWorker' in navigator) navigator.serviceWorker.register('/static/sw.js').catch(e => console.log(e));
 }
 
 async function initCameraList() {
     const select = document.getElementById('camera-select');
     let permissionStream = null;
     try {
-        permissionStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+        permissionStream = await navigator.mediaDevices.getUserMedia({ video: true });
         permissionStream.getTracks().forEach(t => t.stop());
-        permissionStream = null;
-
         const devices = await navigator.mediaDevices.enumerateDevices();
         const videoDevices = devices.filter(d => d.kind === 'videoinput');
         
@@ -48,28 +43,71 @@ async function initCameraList() {
             select.innerHTML = '<option value="">Tidak ada kamera terdeteksi</option>';
             return;
         }
-
         let backCameraFound = false;
         videoDevices.forEach((device, index) => {
             const option = document.createElement('option');
             option.value = device.deviceId;
             const label = device.label || `Kamera ${index + 1}`;
             option.text = label;
-            
-            const labelLow = label.toLowerCase();
-            if (!backCameraFound && (labelLow.includes('back') || labelLow.includes('environment') || labelLow.includes('belakang') || labelLow.includes('rear'))) {
+            if (!backCameraFound && (label.toLowerCase().includes('back') || label.toLowerCase().includes('environment'))) {
                 option.selected = true;
                 backCameraFound = true;
             }
             select.appendChild(option);
         });
-
-        if (!backCameraFound && videoDevices.length > 1) {
-            select.selectedIndex = select.options.length - 1;
-        }
+        if (!backCameraFound && videoDevices.length > 1) select.selectedIndex = select.options.length - 1;
     } catch (err) {
-        if (permissionStream) permissionStream.getTracks().forEach(t => t.stop());
         select.innerHTML = '<option value="">Izinkan akses kamera terlebih dahulu</option>';
+    }
+}
+
+async function loadAIModel() {
+    if (yoloSession) return;
+    isModelLoading = true;
+    
+    document.getElementById('downloading-screen').style.display = 'flex';
+    const progressBar = document.getElementById('download-progress-bar');
+    const statusText = document.getElementById('download-status-text');
+    
+    try {
+        // Karena onnxruntime-web belum mensupport onProgress secara native di fetch model,
+        // Kita gunakan XMLHttpRequest manual untuk bisa dapat progress bar.
+        const modelUrl = '/static/pothole_yolov8.onnx';
+        statusText.innerText = "Mengunduh 42 MB...";
+        
+        const response = await new Promise((resolve, reject) => {
+            const xhr = new XMLHttpRequest();
+            xhr.open('GET', modelUrl, true);
+            xhr.responseType = 'arraybuffer';
+            xhr.onprogress = (e) => {
+                if (e.lengthComputable) {
+                    const pct = Math.round((e.loaded / e.total) * 100);
+                    progressBar.style.width = pct + '%';
+                    statusText.innerText = pct + '% (' + (e.loaded/1024/1024).toFixed(1) + 'MB)';
+                } else {
+                    statusText.innerText = "Mengunduh... (" + (e.loaded/1024/1024).toFixed(1) + "MB)";
+                }
+            };
+            xhr.onload = () => {
+                if (xhr.status >= 200 && xhr.status < 300) resolve(xhr.response);
+                else reject(new Error(xhr.statusText));
+            };
+            xhr.onerror = () => reject(new Error("Network Error"));
+            xhr.send();
+        });
+
+        statusText.innerText = "Memanaskan Model (WebGL)...";
+        // Init ONNX Session dengan backend webgl agar cepat
+        yoloSession = await ort.InferenceSession.create(response, { executionProviders: ['webgl', 'wasm'] });
+        
+        document.getElementById('downloading-screen').style.display = 'none';
+        isModelLoading = false;
+    } catch (e) {
+        console.error("Gagal memuat model:", e);
+        statusText.innerText = "Gagal Mengunduh Model!";
+        statusText.style.color = '#ef4444';
+        progressBar.style.background = '#ef4444';
+        throw e;
     }
 }
 
@@ -77,21 +115,21 @@ async function launchApp() {
     const splash = document.getElementById('splash-screen');
     const appUI = document.getElementById('app-container');
     
-    // Ambil deviceId sebelum innerHTML splash di-overwrite
-    const select = document.getElementById('camera-select');
-    const deviceId = select ? select.value : '';
-    
     splash.innerHTML = '<h2>🌍 Mengaktifkan GPS & Kamera...</h2><p style="color:#94a3b8;margin-top:10px;">Mohon izinkan akses Lokasi dan Kamera.</p>';
     
     try {
         await startGPS();
-        await startCamera(deviceId);
+        await startCamera();
         
         splash.style.display = 'none';
-        appUI.style.display = 'flex';
         
+        // MULAI DOWNLOAD MODEL ONNX
+        await loadAIModel();
+        
+        appUI.style.display = 'flex';
         isRunning = true;
-        startDetectionLoop();
+        
+        requestAnimationFrame(detectFrame);
     } catch (err) {
         splash.innerHTML = `<h2>❌ Gagal Memulai</h2><p style="color:#ef4444;margin-top:10px;">${err.message}</p>
         <button onclick="location.reload()" style="margin-top:20px;padding:10px 20px;background:#4F46E5;color:white;border:none;border-radius:8px;">Coba Lagi</button>`;
@@ -100,7 +138,6 @@ async function launchApp() {
 
 function stopSystem() {
     isRunning = false;
-    if (detectionLoop) clearInterval(detectionLoop);
     stopCamera();
     stopGPS();
     document.getElementById('app-container').style.display = 'none';
@@ -115,12 +152,12 @@ function updatePill(id, text, colorClass) {
     el.className = 'status-pill ' + colorClass;
 }
 
-// ── CAMERA ──
-async function startCamera(deviceId) {
+// ── CAMERA & GPS ──
+async function startCamera() {
     const video = document.getElementById('camera-video');
-    
+    const select = document.getElementById('camera-select');
+    const deviceId = select.value;
     const constraints = deviceId ? { video: { deviceId: { exact: deviceId } } } : { video: { facingMode: 'environment' } };
-
     try {
         videoStream = await navigator.mediaDevices.getUserMedia(constraints);
         video.srcObject = videoStream;
@@ -132,7 +169,6 @@ async function startCamera(deviceId) {
         throw new Error('Kamera gagal diakses: ' + err.message);
     }
 }
-
 function stopCamera() {
     if (videoStream) {
         videoStream.getTracks().forEach(t => t.stop());
@@ -141,15 +177,10 @@ function stopCamera() {
     updatePill('pill-camera', 'CAM OFF', 'red');
 }
 
-// ── GPS ──
 function startGPS() {
     return new Promise((resolve, reject) => {
-        if (!("geolocation" in navigator)) {
-            return reject(new Error('GPS tidak tersedia di browser ini'));
-        }
-
+        if (!("geolocation" in navigator)) return reject(new Error('GPS tidak tersedia'));
         updatePill('pill-gps', 'GPS WAIT', 'yellow');
-
         gpsWatchId = navigator.geolocation.watchPosition(
             (pos) => {
                 gpsLat = pos.coords.latitude;
@@ -171,7 +202,6 @@ function startGPS() {
         );
     });
 }
-
 function stopGPS() {
     if (gpsWatchId !== null) {
         navigator.geolocation.clearWatch(gpsWatchId);
@@ -180,67 +210,139 @@ function stopGPS() {
     updatePill('pill-gps', 'GPS OFF', 'red');
 }
 
-// ── SERVER-SIDE DETECTION LOOP ──
-function startDetectionLoop() {
-    const video = document.getElementById('camera-video');
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
+// ── ON-DEVICE AI DETECTION (ONNX) ──
+let lastLogTime = 0;
+// Reusable canvas and tensor arrays to avoid garbage collection pauses
+const inputCanvas = document.createElement('canvas');
+inputCanvas.width = 640;
+inputCanvas.height = 640;
+const inputCtx = inputCanvas.getContext('2d', { willReadFrequently: true });
+
+async function detectFrame() {
+    if (!isRunning || !yoloSession) return;
     
-    let isProcessing = false;
-
-    detectionLoop = setInterval(async () => {
-        if (!video.videoWidth || video.paused || isProcessing) return;
-
-        isProcessing = true;
-
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    const video = document.getElementById('camera-video');
+    if (!video.videoWidth || video.paused) {
+        requestAnimationFrame(detectFrame);
+        return;
+    }
+    
+    const startMs = performance.now();
+    
+    // 1. Preprocessing (Resize ke 640x640)
+    inputCtx.drawImage(video, 0, 0, 640, 640);
+    const imgData = inputCtx.getImageData(0, 0, 640, 640).data;
+    
+    // Konversi HWC (RGBA) ke CHW (Float32) dan normalisasi 0-1
+    const float32Data = new Float32Array(3 * 640 * 640);
+    for (let i = 0, j = 0; i < imgData.length; i += 4, j++) {
+        float32Data[j] = imgData[i] / 255.0;                   // R
+        float32Data[j + 640 * 640] = imgData[i + 1] / 255.0;   // G
+        float32Data[j + 2 * 640 * 640] = imgData[i + 2] / 255.0; // B
+    }
+    
+    const tensor = new ort.Tensor('float32', float32Data, [1, 3, 640, 640]);
+    
+    try {
+        // 2. Inference
+        const feeds = {};
+        feeds[yoloSession.inputNames[0]] = tensor;
+        const output = await yoloSession.run(feeds);
         
-        const base64Image = canvas.toDataURL('image/jpeg', 0.6);
-
-        const payload = {
-            image: base64Image,
-            latitude: gpsLat,
-            longitude: gpsLon,
-            speed: gpsSpeed
-        };
-
-        try {
-            const res = await fetch('/api/detect', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-            const data = await res.json();
-            
-            if (data.error) {
-                console.error("API Error:", data.error);
-            } else {
-                drawBoundingBoxes(data.detections, video.videoWidth, video.videoHeight);
-                if (data.inference_ms) {
-                    document.getElementById('hud-status').innerHTML = `🟢 Sistem Aktif & Memantau<br><span style="font-size:0.8rem;color:#10b981;">Inference: ${data.inference_ms}ms (Server YOLOv9)</span>`;
-                }
-            }
-        } catch (err) {
-            console.error('[DetectionLoop] Error API:', err);
-            document.getElementById('hud-status').innerHTML = `🔴 Koneksi Server Terputus<br><span style="font-size:0.8rem;">Mencoba kembali...</span>`;
-        } finally {
-            isProcessing = false;
+        // Output nama tensor bisa bervariasi, kita ambil output pertama
+        const outName = yoloSession.outputNames[0];
+        const outData = output[outName].data;
+        // outData adalah FlatArray dari shape [1, 5, 8400]
+        
+        // 3. Post-Processing
+        const boxes = processYoloOutput(outData, video.videoWidth, video.videoHeight);
+        drawBoundingBoxes(boxes, video.videoWidth, video.videoHeight);
+        
+        const endMs = performance.now();
+        const inferenceTime = Math.round(endMs - startMs);
+        const fps = Math.round(1000 / (inferenceTime || 1));
+        
+        document.getElementById('hud-status').innerHTML = `🟢 Sistem Aktif<br><span style="font-size:0.8rem;color:#10b981;">Infer: ${inferenceTime}ms (${fps} FPS) ONNX</span>`;
+        
+        // Log ke server tiap 1 detik jika deteksi lubang
+        if (boxes.length > 0 && (Date.now() - lastLogTime > 1000)) {
+            lastLogTime = Date.now();
+            saveDetection(boxes[0], video);
         }
-    }, DETECT_INTERVAL_MS);
+        
+    } catch (e) {
+        console.error("Inference Error:", e);
+    }
+    
+    // 4. Lanjut frame berikutnya
+    requestAnimationFrame(detectFrame);
+}
+
+function processYoloOutput(data, vidW, vidH) {
+    const numDetections = 8400;
+    const boxes = [];
+    
+    for (let i = 0; i < numDetections; i++) {
+        const x = data[0 * numDetections + i];
+        const y = data[1 * numDetections + i];
+        const w = data[2 * numDetections + i];
+        const h = data[3 * numDetections + i];
+        const conf = data[4 * numDetections + i]; // Skor confidence lubang
+        
+        if (conf > CONF_THRESHOLD) {
+            const rx = (x - w / 2) / 640 * vidW;
+            const ry = (y - h / 2) / 640 * vidH;
+            const rw = w / 640 * vidW;
+            const rh = h / 640 * vidH;
+            
+            const diameter = (rw + rh) / 2;
+            let severity = 'Low';
+            if (diameter > 150) severity = 'High';
+            else if (diameter > 80) severity = 'Medium';
+            
+            boxes.push({ box: [rx, ry, rw, rh], confidence: conf, severity: severity, diameter: Math.round(diameter) });
+        }
+    }
+    return applyNMS(boxes, IOU_THRESHOLD);
+}
+
+function applyNMS(boxes, iouThreshold) {
+    boxes.sort((a, b) => b.confidence - a.confidence);
+    const result = [];
+    while(boxes.length > 0) {
+        const current = boxes.shift();
+        result.push(current);
+        for (let i = boxes.length - 1; i >= 0; i--) {
+            if (calculateIoU(current.box, boxes[i].box) > iouThreshold) {
+                boxes.splice(i, 1);
+            }
+        }
+    }
+    return result;
+}
+
+function calculateIoU(box1, box2) {
+    const x1 = Math.max(box1[0], box2[0]);
+    const y1 = Math.max(box1[1], box2[1]);
+    const x2 = Math.min(box1[0] + box1[2], box2[0] + box2[2]);
+    const y2 = Math.min(box1[1] + box1[3], box2[1] + box2[3]);
+    
+    const interArea = Math.max(0, x2 - x1) * Math.max(0, y2 - y1);
+    const box1Area = box1[2] * box1[3];
+    const box2Area = box2[2] * box2[3];
+    return interArea / (box1Area + box2Area - interArea);
 }
 
 function drawBoundingBoxes(detections, videoW, videoH) {
     const canvas = document.getElementById('camera-overlay');
-    if (!canvas) return;
-    
-    // Sync ukuran canvas dengan video render (menggunakan clientWidth/Height)
-    const video = document.getElementById('camera-video');
-    canvas.width = video.clientWidth;
-    canvas.height = video.clientHeight;
-    
     const ctx = canvas.getContext('2d');
+    
+    const uiRect = canvas.getBoundingClientRect();
+    if (canvas.width !== uiRect.width || canvas.height !== uiRect.height) {
+        canvas.width = uiRect.width;
+        canvas.height = uiRect.height;
+    }
+    
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     if (!detections || detections.length === 0) {
@@ -248,10 +350,8 @@ function drawBoundingBoxes(detections, videoW, videoH) {
         return;
     }
 
-    // Scale dari resolusi asli video ke ukuran tampilan layar
     const scaleX = canvas.width / videoW;
     const scaleY = canvas.height / videoH;
-
     let highestSeverity = 'Low';
 
     detections.forEach(d => {
@@ -262,33 +362,38 @@ function drawBoundingBoxes(detections, videoW, videoH) {
         const scaledW = w * scaleX;
         const scaledH = h * scaleY;
 
-        let color = '#3b82f6'; // Low (Blue)
+        let color = '#3b82f6';
+        let bgFill = 'rgba(59, 130, 246, 0.2)';
+        
         if (d.severity === 'High') {
-            color = '#ef4444'; // Red
+            color = '#ef4444';
+            bgFill = 'rgba(239, 68, 68, 0.2)';
             highestSeverity = 'High';
         } else if (d.severity === 'Medium') {
-            color = '#eab308'; // Yellow
+            color = '#eab308';
+            bgFill = 'rgba(234, 179, 8, 0.2)';
             if (highestSeverity !== 'High') highestSeverity = 'Medium';
         }
 
-        // Draw Box
         ctx.strokeStyle = color;
         ctx.lineWidth = 3;
-        ctx.strokeRect(scaledX, scaledY, scaledW, scaledH);
-        
-        // Draw Fill
+        ctx.fillStyle = bgFill;
+        ctx.beginPath();
+        ctx.roundRect(scaledX, scaledY, scaledW, scaledH, 8);
+        ctx.fill();
+        ctx.stroke();
+
         ctx.fillStyle = color;
-        ctx.globalAlpha = 0.2;
-        ctx.fillRect(scaledX, scaledY, scaledW, scaledH);
+        ctx.font = 'bold 12px Outfit, sans-serif';
+        const text = `${d.severity} ${d.diameter}cm`;
+        const textWidth = ctx.measureText(text).width;
         
-        // Draw Label
-        ctx.globalAlpha = 1.0;
-        ctx.font = "14px 'Outfit', sans-serif";
-        ctx.fillStyle = color;
-        ctx.fillRect(scaledX, scaledY - 24, 180, 24);
-        
-        ctx.fillStyle = "#ffffff";
-        ctx.fillText(`${d.severity} - Conf: ${(d.confidence*100).toFixed(0)}%`, scaledX + 5, scaledY - 8);
+        ctx.beginPath();
+        ctx.roundRect(scaledX, scaledY - 22, textWidth + 12, 22, [6, 6, 0, 0]);
+        ctx.fill();
+
+        ctx.fillStyle = '#ffffff';
+        ctx.fillText(text, scaledX + 6, scaledY - 6);
     });
 
     if (highestSeverity === 'High' || highestSeverity === 'Medium') {
@@ -299,64 +404,67 @@ function drawBoundingBoxes(detections, videoW, videoH) {
     }
 }
 
-// ── SSE (Real-time updates dari server) ──
-function setupSSE() {
-    if (eventSource) eventSource.close();
-    eventSource = new EventSource('/stream');
-    eventSource.onmessage = (e) => {
-        try {
-            const data = JSON.parse(e.data);
-            if (data.id) {
-                appendLogItem(data);
-                refreshStats();
-            }
-        } catch (err) {}
-    };
-    eventSource.onerror = () => {
-        eventSource.close();
-        setTimeout(setupSSE, 5000);
-    };
+async function saveDetection(det, video) {
+    const tmpCanvas = document.createElement('canvas');
+    tmpCanvas.width = 320;
+    tmpCanvas.height = 320;
+    tmpCanvas.getContext('2d').drawImage(video, 0, 0, 320, 320);
+    const base64Image = tmpCanvas.toDataURL('image/jpeg', 0.5);
+
+    try {
+        await fetch('/api/detect', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                image: base64Image,
+                latitude: gpsLat,
+                longitude: gpsLon,
+                speed: gpsSpeed,
+                save_only: true, 
+                detection: det
+            })
+        });
+        refreshStats();
+        loadExistingData();
+    } catch(err) {
+        console.error("Gagal save detection:", err);
+    }
 }
 
-// ── Bottom Sheet & Logs ──
+// ── Chart.js & UI ──
+function initChart() {
+    const ctx = document.getElementById('sevChart').getContext('2d');
+    sevChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['High', 'Medium', 'Low'],
+            datasets: [{ data: [0, 0, 0], backgroundColor: ['#ef4444', '#eab308', '#3b82f6'], borderWidth: 0 }]
+        },
+        options: { responsive: true, maintainAspectRatio: false, cutout: '70%', plugins: { legend: { position: 'right', labels: { color: '#f8fafc' } } } }
+    });
+}
 function setupBottomSheet() {
     const sheet = document.getElementById('bottom-sheet');
     const handle = document.getElementById('sheet-handle');
-    
-    handle.addEventListener('click', () => {
-        sheet.classList.toggle('open');
-    });
-
-    let startY, currentY;
-    handle.addEventListener('touchstart', e => { startY = e.touches[0].clientY; });
-    handle.addEventListener('touchmove', e => {
-        currentY = e.touches[0].clientY;
-        if (currentY - startY > 50) sheet.classList.remove('open');
-        else if (startY - currentY > 50) sheet.classList.add('open');
-    });
+    handle.addEventListener('click', () => sheet.classList.toggle('open'));
 }
-
 function appendLogItem(item) {
     const list = document.getElementById('log-body');
     if (!list) return;
-    
     const tr = document.createElement('tr');
     let color = '#3b82f6';
     if (item.severity === 'High') color = '#ef4444';
     else if (item.severity === 'Medium') color = '#eab308';
-    
+    const snapHtml = item.snapshot_path ? `<img src="${item.snapshot_path}" alt="Snap" style="width:40px;height:40px;object-fit:cover;border-radius:4px;">` : `-`;
     tr.innerHTML = `
-        <td>#${item.id}</td>
-        <td>${item.timestamp.substring(11,19)}</td>
-        <td>${Math.round(item.speed)} km/h</td>
-        <td style="color:${color};font-weight:bold;">${item.severity}</td>
-        <td><a href="${item.google_maps_url}" target="_blank">🗺️</a></td>
+        <td>${snapHtml}</td>
+        <td style="font-size:0.85rem;">${item.timestamp.split(' ')[1]}</td>
+        <td><span style="color:${color};font-weight:bold;border:1px solid ${color};padding:2px 6px;border-radius:4px;font-size:0.75rem;">${item.severity}</span></td>
+        <td style="font-size:0.85rem;color:#94a3b8;">${item.diameter}cm</td>
     `;
-    
     list.insertBefore(tr, list.firstChild);
     if (list.children.length > 50) list.lastChild.remove();
 }
-
 async function loadExistingData() {
     try {
         const res = await fetch('/api/potholes');
@@ -367,48 +475,17 @@ async function loadExistingData() {
             data.forEach(item => appendLogItem(item));
         }
         refreshStats();
-    } catch (err) {
-        console.log("Belum ada data awal atau server error.");
-    }
+    } catch (err) {}
 }
-
-// ── Chart.js ──
-function initChart() {
-    const canvas = document.getElementById('severityChart');
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    sevChart = new Chart(ctx, {
-        type: 'doughnut',
-        data: {
-            labels: ['High', 'Medium', 'Low'],
-            datasets: [{
-                data: [0, 0, 0],
-                backgroundColor: ['#ef4444', '#eab308', '#3b82f6'],
-                borderWidth: 0
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            cutout: '70%',
-            plugins: {
-                legend: { position: 'right', labels: { color: '#f8fafc', font: { family: 'Outfit' } } }
-            }
-        }
-    });
-}
-
 async function refreshStats() {
     try {
         const res = await fetch('/api/stats');
         const data = await res.json();
-
+        const t = document.getElementById('stat-total'); if (t) t.textContent = data.total;
+        const ad = document.getElementById('stat-avg-dia'); if (ad) ad.textContent = data.avg_diameter + 'cm';
+        const ap = document.getElementById('stat-avg-dep'); if (ap) ap.textContent = data.avg_depth + 'cm';
         if (sevChart) {
-            sevChart.data.datasets[0].data = [
-                data.severity_distribution.High || 0,
-                data.severity_distribution.Medium || 0,
-                data.severity_distribution.Low || 0
-            ];
+            sevChart.data.datasets[0].data = [ data.severity_distribution.High || 0, data.severity_distribution.Medium || 0, data.severity_distribution.Low || 0 ];
             sevChart.update();
         }
     } catch (err) {}

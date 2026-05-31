@@ -83,7 +83,7 @@ def _ensure_db():
 # ──────────────────────────────────────────────
 # YOLOv9 Model Loader (Lazy Load)
 # ──────────────────────────────────────────────
-MODEL_PATH = os.environ.get('YOLO_MODEL', 'yolov9t.pt')
+MODEL_PATH = os.environ.get('YOLO_MODEL', 'pothole_yolov8.pt')
 
 _model_loaded = False
 model = None
@@ -183,41 +183,74 @@ def process_image():
 
     h, w, _ = frame.shape
     
-    t0 = time.time()
-    results = model.predict(frame, conf=CONF_THRESHOLD, verbose=False)
-    inference_ms = int((time.time() - t0) * 1000)
+    save_only = data.get('save_only', False)
     
     detections = []
     saved = []
     
-    for r in results:
-        boxes = r.boxes
-        for box in boxes:
-            x1, y1, x2, y2 = box.xyxy[0].cpu().numpy()
-            conf = float(box.conf[0].cpu().numpy())
+    if save_only:
+        # Inference sudah dilakukan di HP klien, tinggal save
+        inference_ms = 0
+        det = data.get('detection')
+        if det:
+            now_str = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            snap_filename = f"snap_{int(now)}.jpg"
+            snap_path = os.path.join("static", "snapshots", snap_filename)
+            cv2.imwrite(snap_path, frame)
             
-            if not is_valid_pothole(x1, y1, x2, y2, w, h, conf):
-                continue
+            db_item = {
+                "timestamp": now_str,
+                "latitude": latitude,
+                "longitude": longitude,
+                "severity": det.get('severity', 'Low'),
+                "diameter": det.get('diameter', 0),
+                "depth": det.get('depth', 5),
+                "snapshot_path": "/" + snap_path.replace("\\", "/")
+            }
+            if _ensure_db():
+                try:
+                    _supabase_client.table("potholes").insert(db_item).execute()
+                except Exception as e:
+                    logging.error(f"Gagal simpan ke DB: {e}")
+                    
+            saved.append(db_item)
+            broadcaster.broadcast(db_item)
+            _last_saved_time = now
+            
+    else:
+        # Fallback jika HP klien meminta server untuk mendeteksi
+        t0 = time.time()
+        results = model.predict(frame, conf=CONF_THRESHOLD, verbose=False)
+        inference_ms = int((time.time() - t0) * 1000)
+        
+        for r in results:
+            boxes = r.boxes
+            for box in boxes:
+                x1, y1, x2, y2 = box.xyxy[0].cpu().numpy()
+                conf = float(box.conf[0].cpu().numpy())
+                
+                if not is_valid_pothole(x1, y1, x2, y2, w, h, conf):
+                    continue
 
-            bw = x2 - x1
-            bh = y2 - y1
-            
-            # Estimasi kasaran (menggunakan faktor kalibrasi fiktif)
-            pixel_to_cm = 0.15 
-            est_diameter = round(bw * pixel_to_cm, 1)
-            est_depth = round(est_diameter * 0.15, 1)
-            
-            if est_depth > 10: severity = 'High'
-            elif est_depth > 5: severity = 'Medium'
-            else: severity = 'Low'
+                bw = x2 - x1
+                bh = y2 - y1
+                
+                # Estimasi kasaran (menggunakan faktor kalibrasi fiktif)
+                pixel_to_cm = 0.15 
+                est_diameter = round(bw * pixel_to_cm, 1)
+                est_depth = round(est_diameter * 0.15, 1)
+                
+                if est_depth > 10: severity = 'High'
+                elif est_depth > 5: severity = 'Medium'
+                else: severity = 'Low'
 
-            detections.append({
-                'box': [int(x1), int(y1), int(bw), int(bh)],
-                'confidence': round(conf, 2),
-                'diameter': est_diameter,
-                'depth': est_depth,
-                'severity': severity
-            })
+                detections.append({
+                    'box': [int(x1), int(y1), int(bw), int(bh)],
+                    'confidence': round(conf, 2),
+                    'diameter': est_diameter,
+                    'depth': est_depth,
+                    'severity': severity
+                })
             
             # Hanya simpan 1 snapshot per cooldown
             if (now - _last_saved_time) >= DETECTION_COOLDOWN_SEC:
