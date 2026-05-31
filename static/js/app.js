@@ -7,6 +7,7 @@ let gpsWatchId = null;
 let detectionLoop = null;
 let isRunning = false;
 let sevChart = null;
+let eventSource = null;
 
 let gpsLat = 0, gpsLon = 0, gpsSpeed = 0, gpsHeading = 0, gpsAccuracy = 0;
 
