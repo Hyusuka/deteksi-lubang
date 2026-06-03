@@ -14,9 +14,6 @@
     <link rel="manifest" href="/static/manifest.json">
     <meta name="theme-color" content="#0A0D12">
     <link rel="stylesheet" href="/static/css/style.css">
-    
-    <!-- ONNX Runtime Web Library -->
-    <script src="https://cdn.jsdelivr.net/npm/onnxruntime-web/dist/ort.min.js"></script>
 </head>
 <body>
 
@@ -62,21 +59,6 @@
                 </select>
             </div>
             <p class="splash-hint" style="margin-top: 12px;">Pastikan GPS & Kamera diizinkan di browser Anda</p>
-        </div>
-    </div>
-
-    <!-- ═══════════ MODEL DOWNLOADING SCREEN ═══════════ -->
-    <div class="splash-screen" id="downloading-screen" style="display:none;">
-        <div class="splash-content" style="text-align: center;">
-            <div class="splash-icon" style="font-size:3rem; margin-bottom:10px;">🧠</div>
-            <h2>Mengunduh Model AI...</h2>
-            <p style="color:#94a3b8; font-size:0.9rem; margin-bottom: 20px;">
-                Proses ini mungkin memakan waktu beberapa detik (±22MB). Pada kunjungan berikutnya, ini akan dilewati secara instan.
-            </p>
-            <div style="width: 100%; height: 8px; background: #2A3447; border-radius: 4px; overflow: hidden; margin-bottom: 8px;">
-                <div id="download-progress-bar" style="width: 0%; height: 100%; background: #00F5D4; transition: width 0.3s;"></div>
-            </div>
-            <p id="download-status-text" style="color:#00F5D4; font-weight:bold; font-size:0.9rem;">0%</p>
         </div>
     </div>
 
@@ -204,7 +186,6 @@
         </div>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
     <script src="/static/js/app.js"></script>
 </body>
 </html>

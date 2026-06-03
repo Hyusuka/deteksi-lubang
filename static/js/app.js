@@ -1,37 +1,55 @@
 // ═══════════════════════════════════════════════
-// Pothole Detector — On-Device Inference (ONNX Web) 30 FPS
+// YOLOv9 Pothole Detector — Mobile App Logic
 // ═══════════════════════════════════════════════
 
+// ── State ──
 let videoStream = null;
 let gpsWatchId = null;
+let detectionLoop = null;
 let isRunning = false;
 let sevChart = null;
+let eventSource = null;
 
-let gpsLat = 0, gpsLon = 0, gpsSpeed = 0, gpsAccuracy = 0;
+// GPS state
+let gpsLat = 0, gpsLon = 0, gpsSpeed = 0, gpsHeading = 0, gpsAccuracy = 0;
 
-let yoloSession = null;
-let isModelLoading = false;
-const CONF_THRESHOLD = 0.25;
-const IOU_THRESHOLD = 0.45;
+// Detection settings
+const DETECT_INTERVAL_MS = 800;
+let testMode = false; // Mode test static (tanpa GPS)
 
+// ── Init ──
 document.addEventListener('DOMContentLoaded', () => {
     initChart();
     loadExistingData();
+    setupSSE();
     setupBottomSheet();
     registerServiceWorker();
     initCameraList();
 
+    // Splash screen launch button
     document.getElementById('btn-launch').addEventListener('click', launchApp);
     document.getElementById('btn-stop').addEventListener('click', stopSystem);
 });
 
 function registerServiceWorker() {
-    if ('serviceWorker' in navigator) navigator.serviceWorker.register('/static/sw.js').catch(e => console.log(e));
+    if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.register('/static/sw.js')
+            .then(reg => console.log('PWA Service Worker registered!', reg))
+            .catch(err => console.error('PWA SW failed:', err));
+    }
 }
 
 async function initCameraList() {
     const select = document.getElementById('camera-select');
+    let permissionStream = null;
     try {
+        // Minta izin kamera singkat lalu LANGSUNG STOP stream-nya
+        // agar tidak mengunci kamera saat startCamera() dipanggil nanti
+        permissionStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+        // Hentikan stream izin segera — kamera harus bebas
+        permissionStream.getTracks().forEach(t => t.stop());
+        permissionStream = null;
+
         const devices = await navigator.mediaDevices.enumerateDevices();
         const videoDevices = devices.filter(d => d.kind === 'videoinput');
         
@@ -40,165 +58,240 @@ async function initCameraList() {
             select.innerHTML = '<option value="">Tidak ada kamera terdeteksi</option>';
             return;
         }
+
         let backCameraFound = false;
         videoDevices.forEach((device, index) => {
             const option = document.createElement('option');
             option.value = device.deviceId;
             const label = device.label || `Kamera ${index + 1}`;
             option.text = label;
-            if (!backCameraFound && (label.toLowerCase().includes('back') || label.toLowerCase().includes('environment'))) {
+            
+            // Auto-pilih kamera belakang
+            const labelLow = label.toLowerCase();
+            if (!backCameraFound && (labelLow.includes('back') || labelLow.includes('environment') || labelLow.includes('belakang') || labelLow.includes('rear'))) {
                 option.selected = true;
                 backCameraFound = true;
             }
             select.appendChild(option);
         });
-        if (!backCameraFound && videoDevices.length > 1) select.selectedIndex = select.options.length - 1;
+
+        // Jika tidak ada label back terdeteksi, pilih kamera terakhir (biasanya kamera belakang di HP)
+        if (!backCameraFound && videoDevices.length > 1) {
+            select.selectedIndex = select.options.length - 1;
+        }
     } catch (err) {
+        console.error('Gagal mendapatkan daftar kamera', err);
+        // Pastikan stream dilepas meskipun terjadi error
+        if (permissionStream) {
+            permissionStream.getTracks().forEach(t => t.stop());
+        }
         select.innerHTML = '<option value="">Izinkan akses kamera terlebih dahulu</option>';
     }
 }
 
-async function loadAIModel() {
-    if (yoloSession) return;
-    isModelLoading = true;
-    
-    document.getElementById('downloading-screen').style.display = 'flex';
-    const progressBar = document.getElementById('download-progress-bar');
-    const statusText = document.getElementById('download-status-text');
-    
-    try {
-        // Karena onnxruntime-web belum mensupport onProgress secara native di fetch model,
-        // Kita gunakan XMLHttpRequest manual untuk bisa dapat progress bar.
-        const modelUrl = '/static/pothole_yolov8.onnx';
-        statusText.innerText = "Mengunduh 42 MB...";
-        
-        const response = await new Promise((resolve, reject) => {
-            const xhr = new XMLHttpRequest();
-            xhr.open('GET', modelUrl, true);
-            xhr.responseType = 'arraybuffer';
-            xhr.onprogress = (e) => {
-                if (e.lengthComputable) {
-                    const pct = Math.round((e.loaded / e.total) * 100);
-                    progressBar.style.width = pct + '%';
-                    statusText.innerText = pct + '% (' + (e.loaded/1024/1024).toFixed(1) + 'MB)';
-                } else {
-                    statusText.innerText = "Mengunduh... (" + (e.loaded/1024/1024).toFixed(1) + "MB)";
-                }
-            };
-            xhr.onload = () => {
-                if (xhr.status >= 200 && xhr.status < 300) resolve(xhr.response);
-                else reject(new Error(xhr.statusText));
-            };
-            xhr.onerror = () => reject(new Error("Network Error"));
-            xhr.send();
-        });
-
-        statusText.innerText = "Memanaskan Model (WebGL)...";
-        // Init ONNX Session dengan backend webgl agar cepat
-        yoloSession = await ort.InferenceSession.create(response, { executionProviders: ['webgl', 'wasm'] });
-        
-        document.getElementById('downloading-screen').style.display = 'none';
-        isModelLoading = false;
-    } catch (e) {
-        console.error("Gagal memuat model:", e);
-        statusText.innerText = "Gagal Mengunduh Model!";
-        statusText.style.color = '#ef4444';
-        progressBar.style.background = '#ef4444';
-        throw e;
-    }
-}
-
+// ═══════════════════════════════════════════════
+// 0. SPLASH → APP TRANSITION (GPS required first)
+// ═══════════════════════════════════════════════
 async function launchApp() {
-    const splash = document.getElementById('splash-screen');
-    const appUI = document.getElementById('app-container');
-    const select = document.getElementById('camera-select');
-    const selectedDeviceId = select ? select.value : '';
-    
-    splash.innerHTML = '<h2>🌍 Mengaktifkan GPS & Kamera...</h2><p style="color:#94a3b8;margin-top:10px;">Mohon izinkan akses Lokasi dan Kamera.</p>';
-    
+    const btn = document.getElementById('btn-launch');
+    btn.innerHTML = '<span class="btn-icon">⏳</span><span>Mengaktifkan GPS...</span>';
+    btn.disabled = true;
+
     try {
+        // Step 1: GPS must succeed first
         await startGPS();
-        await startCamera(selectedDeviceId);
-        
-        splash.style.display = 'none';
-        
-        // MULAI DOWNLOAD MODEL ONNX
-        await loadAIModel();
-        
-        appUI.style.display = 'flex';
+
+        // Step 2: Start camera
+        btn.innerHTML = '<span class="btn-icon">📷</span><span>Mengaktifkan Kamera...</span>';
+        const camOk = await startCamera();
+
+        if (!camOk) {
+            btn.innerHTML = '<span class="btn-icon">⚠️</span><span>Kamera Gagal — Coba Lagi</span>';
+            btn.disabled = false;
+            stopGPS();
+            return;
+        }
+
+        // Step 3: Hide splash, show app
+        document.getElementById('splash-screen').style.display = 'none';
+        document.getElementById('app-container').style.display = 'block';
         isRunning = true;
-        
-        requestAnimationFrame(detectFrame);
+
+        // Step 4: Start detection loop after camera stabilizes
+        setTimeout(() => startDetectionLoop(), 1000);
+
     } catch (err) {
-        splash.innerHTML = `<h2>❌ Gagal Memulai</h2><p style="color:#ef4444;margin-top:10px;">${err.message}</p>
-        <button onclick="location.reload()" style="margin-top:20px;padding:10px 20px;background:#4F46E5;color:white;border:none;border-radius:8px;">Coba Lagi</button>`;
+        console.error('Launch failed:', err);
+        btn.innerHTML = '<span class="btn-icon">📍</span><span>GPS Ditolak — Izinkan & Coba Lagi</span>';
+        btn.disabled = false;
     }
 }
 
-function stopSystem() {
-    isRunning = false;
-    stopCamera();
-    stopGPS();
-    document.getElementById('app-container').style.display = 'none';
-    document.getElementById('splash-screen').style.display = 'flex';
-    document.getElementById('splash-screen').innerHTML = '<h2>⏹️ Sistem Dihentikan</h2><button onclick="location.reload()" style="margin-top:20px;padding:10px 20px;background:#4F46E5;color:white;border:none;border-radius:8px;">Mulai Ulang</button>';
-}
-
-function updatePill(id, text, colorClass) {
-    const el = document.getElementById(id);
-    if (!el) return;
-    el.textContent = text;
-    el.className = 'status-pill ' + colorClass;
-}
-
-// ── CAMERA & GPS ──
-async function startCamera(deviceId) {
+// ═══════════════════════════════════════════════
+// 1. CAMERA — Real device camera via getUserMedia
+// ═══════════════════════════════════════════════
+async function startCamera() {
     const video = document.getElementById('camera-video');
-    const constraints = deviceId ? { video: { deviceId: { exact: deviceId } } } : { video: { facingMode: 'environment' } };
+    const select = document.getElementById('camera-select');
+    const selectedDeviceId = select.value;
+
+    // Strategi 1: Gunakan deviceId yang dipilih di dropdown
+    if (selectedDeviceId) {
+        try {
+            videoStream = await navigator.mediaDevices.getUserMedia({
+                video: { deviceId: { exact: selectedDeviceId }, width: { ideal: 1280 }, height: { ideal: 720 } },
+                audio: false
+            });
+            video.srcObject = videoStream;
+            await video.play();
+            _onCameraReady(video);
+            return true;
+        } catch (err) {
+            console.warn('Gagal buka kamera dengan deviceId, mencoba fallback facingMode...', err);
+        }
+    }
+
+    // Strategi 2: Fallback ke facingMode environment (kamera belakang)
     try {
-        videoStream = await navigator.mediaDevices.getUserMedia(constraints);
+        videoStream = await navigator.mediaDevices.getUserMedia({
+            video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } },
+            audio: false
+        });
         video.srcObject = videoStream;
-        await new Promise(resolve => { video.onloadedmetadata = resolve; });
-        video.play();
-        updatePill('pill-camera', 'CAM ON', 'green');
+        await video.play();
+        _onCameraReady(video);
+        return true;
     } catch (err) {
-        updatePill('pill-camera', 'CAM ERR', 'red');
-        throw new Error('Kamera gagal diakses: ' + err.message);
+        console.warn('Gagal buka kamera facingMode environment, mencoba kamera apapun...', err);
+    }
+
+    // Strategi 3: Fallback terakhir — kamera apa saja yang tersedia
+    try {
+        videoStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+        video.srcObject = videoStream;
+        await video.play();
+        _onCameraReady(video);
+        return true;
+    } catch (err) {
+        console.error('Semua strategi kamera gagal:', err);
+        updatePill('pill-camera', 'CAM ❌', 'red');
+        return false;
     }
 }
+
+function _onCameraReady(video) {
+    const overlay = document.getElementById('camera-overlay');
+    video.addEventListener('loadedmetadata', () => {
+        overlay.width = video.videoWidth;
+        overlay.height = video.videoHeight;
+    });
+    updatePill('pill-camera', 'CAM', 'green');
+}
+
 function stopCamera() {
     if (videoStream) {
         videoStream.getTracks().forEach(t => t.stop());
         videoStream = null;
     }
+    document.getElementById('camera-video').srcObject = null;
     updatePill('pill-camera', 'CAM OFF', 'red');
+}
+
+// ═══════════════════════════════════════════════
+// 2. GPS — Real position via Geolocation API
+//    Kompatibel dengan Safari iOS, Chrome Android
+// ═══════════════════════════════════════════════
+function _updateGPSData(pos) {
+    gpsLat = pos.coords.latitude;
+    gpsLon = pos.coords.longitude;
+    gpsSpeed = pos.coords.speed || 0;
+    gpsHeading = pos.coords.heading || 0;
+    gpsAccuracy = pos.coords.accuracy || 0;
+
+    const speedKmh = Math.round(gpsSpeed * 3.6);
+
+    // Update HUD (hanya jika elemen sudah ada di DOM)
+    const elLat = document.getElementById('hud-lat');
+    const elLon = document.getElementById('hud-lon');
+    const elSpeed = document.getElementById('hud-speed-val');
+    const elMSpeed = document.getElementById('m-speed');
+    if (elLat) elLat.textContent = `Lat: ${gpsLat.toFixed(6)}`;
+    if (elLon) elLon.textContent = `Lon: ${gpsLon.toFixed(6)}`;
+    if (elSpeed) elSpeed.textContent = speedKmh;
+    if (elMSpeed) elMSpeed.textContent = speedKmh;
+
+    updatePill('pill-gps', 'GPS', 'green');
 }
 
 function startGPS() {
     return new Promise((resolve, reject) => {
-        if (!("geolocation" in navigator)) return reject(new Error('GPS tidak tersedia'));
-        updatePill('pill-gps', 'GPS WAIT', 'yellow');
-        gpsWatchId = navigator.geolocation.watchPosition(
+        if (!navigator.geolocation) {
+            reject(new Error('GPS tidak tersedia di browser ini'));
+            return;
+        }
+
+        let resolved = false;
+
+        // Fase 1: getCurrentPosition — cepat dan didukung baik oleh Safari
+        // Safari iOS sering gagal pada watchPosition langsung, tapi getCurrentPosition lebih stabil
+        navigator.geolocation.getCurrentPosition(
             (pos) => {
-                gpsLat = pos.coords.latitude;
-                gpsLon = pos.coords.longitude;
-                gpsSpeed = pos.coords.speed ? (pos.coords.speed * 3.6) : 0; 
-                gpsAccuracy = pos.coords.accuracy;
-                
-                const speedEl = document.getElementById('hud-speed-val');
-                if (speedEl) speedEl.textContent = Math.round(gpsSpeed);
-                updatePill('pill-gps', `GPS ±${Math.round(gpsAccuracy)}m`, 'green');
-                resolve(); 
+                _updateGPSData(pos);
+                if (!resolved) {
+                    resolved = true;
+                    resolve();
+                }
+                // Setelah posisi awal didapat, mulai watch untuk update kontinu
+                _startGPSWatch();
             },
             (err) => {
-                updatePill('pill-gps', 'GPS ERR', 'red');
-                if (err.code === 1) reject(new Error('Izin lokasi ditolak'));
-                else reject(new Error('Gagal melacak lokasi: ' + err.message));
+                console.warn('getCurrentPosition gagal, mencoba watchPosition...', err);
+                // Fase 2: Fallback ke watchPosition jika getCurrentPosition gagal
+                _startGPSWatch();
+                // Beri timeout tambahan untuk watchPosition mendapat posisi pertama
+                setTimeout(() => {
+                    if (!resolved) {
+                        resolved = true;
+                        // Jika masih belum dapat posisi, resolve saja agar app bisa berjalan
+                        // GPS akan tetap mencoba di background via watchPosition
+                        console.warn('GPS timeout - app dilanjutkan tanpa posisi awal');
+                        updatePill('pill-gps', 'GPS ⏳', 'yellow');
+                        resolve();
+                    }
+                }, 10000);
             },
-            { enableHighAccuracy: true, maximumAge: 0, timeout: 10000 }
+            {
+                enableHighAccuracy: true,
+                maximumAge: 30000,  // Terima posisi cached hingga 30 detik (penting untuk Safari)
+                timeout: 15000      // Timeout lebih panjang untuk Safari iOS
+            }
         );
+
+        function _startGPSWatch() {
+            if (gpsWatchId !== null) return; // Sudah dimulai
+            gpsWatchId = navigator.geolocation.watchPosition(
+                (pos) => {
+                    _updateGPSData(pos);
+                    if (!resolved) {
+                        resolved = true;
+                        resolve();
+                    }
+                },
+                (err) => {
+                    console.warn('watchPosition error:', err.message);
+                    // Jangan reject — biarkan app tetap jalan, GPS akan retry otomatis
+                    updatePill('pill-gps', 'GPS ⚠️', 'yellow');
+                },
+                {
+                    enableHighAccuracy: true,
+                    maximumAge: 5000,
+                    timeout: 30000  // Timeout sangat panjang untuk Safari
+                }
+            );
+        }
     });
 }
+
 function stopGPS() {
     if (gpsWatchId !== null) {
         navigator.geolocation.clearWatch(gpsWatchId);
@@ -207,285 +300,609 @@ function stopGPS() {
     updatePill('pill-gps', 'GPS OFF', 'red');
 }
 
-// ── ON-DEVICE AI DETECTION (ONNX) ──
-let lastLogTime = 0;
-// Reusable canvas and tensor arrays to avoid garbage collection pauses
-const inputCanvas = document.createElement('canvas');
-inputCanvas.width = 640;
-inputCanvas.height = 640;
-const inputCtx = inputCanvas.getContext('2d', { willReadFrequently: true });
-
-async function detectFrame() {
-    if (!isRunning || !yoloSession) return;
-    
+// ═══════════════════════════════════════════════
+// 3. DETECTION LOOP — Capture frame → send to server
+// ═══════════════════════════════════════════════
+function startDetectionLoop() {
     const video = document.getElementById('camera-video');
-    if (!video.videoWidth || video.paused) {
-        requestAnimationFrame(detectFrame);
-        return;
-    }
-    
-    const startMs = performance.now();
-    
-    // 1. Preprocessing (Resize ke 640x640)
-    inputCtx.drawImage(video, 0, 0, 640, 640);
-    const imgData = inputCtx.getImageData(0, 0, 640, 640).data;
-    
-    // Konversi HWC (RGBA) ke CHW (Float32) dan normalisasi 0-1
-    const float32Data = new Float32Array(3 * 640 * 640);
-    for (let i = 0, j = 0; i < imgData.length; i += 4, j++) {
-        float32Data[j] = imgData[i] / 255.0;                   // R
-        float32Data[j + 640 * 640] = imgData[i + 1] / 255.0;   // G
-        float32Data[j + 2 * 640 * 640] = imgData[i + 2] / 255.0; // B
-    }
-    
-    const tensor = new ort.Tensor('float32', float32Data, [1, 3, 640, 640]);
-    
-    try {
-        // 2. Inference
-        const feeds = {};
-        feeds[yoloSession.inputNames[0]] = tensor;
-        const output = await yoloSession.run(feeds);
-        
-        // Output nama tensor bisa bervariasi, kita ambil output pertama
-        const outName = yoloSession.outputNames[0];
-        const outData = output[outName].data;
-        // outData adalah FlatArray dari shape [1, 5, 8400]
-        
-        // 3. Post-Processing
-        const boxes = processYoloOutput(outData, video.videoWidth, video.videoHeight);
-        drawBoundingBoxes(boxes, video.videoWidth, video.videoHeight);
-        
-        const endMs = performance.now();
-        const inferenceTime = Math.round(endMs - startMs);
-        const fps = Math.round(1000 / (inferenceTime || 1));
-        
-        document.getElementById('hud-status').innerHTML = `🟢 Sistem Aktif<br><span style="font-size:0.8rem;color:#10b981;">Infer: ${inferenceTime}ms (${fps} FPS) ONNX</span>`;
-        
-        // Log ke server tiap 1 detik jika deteksi lubang
-        if (boxes.length > 0 && (Date.now() - lastLogTime > 1000)) {
-            lastLogTime = Date.now();
-            saveDetection(boxes[0], video);
-        }
-        
-    } catch (e) {
-        console.error("Inference Error:", e);
-    }
-    
-    // 4. Lanjut frame berikutnya
-    requestAnimationFrame(detectFrame);
-}
+    const captureCanvas = document.createElement('canvas');
+    const captureCtx = captureCanvas.getContext('2d');
+    let frameCount = 0;
+    let lastFpsTime = Date.now();
 
-function processYoloOutput(data, vidW, vidH) {
-    const numDetections = 8400;
-    const boxes = [];
-    
-    for (let i = 0; i < numDetections; i++) {
-        const x = data[0 * numDetections + i];
-        const y = data[1 * numDetections + i];
-        const w = data[2 * numDetections + i];
-        const h = data[3 * numDetections + i];
-        const conf = data[4 * numDetections + i]; // Skor confidence lubang
-        
-        if (conf > CONF_THRESHOLD) {
-            const rx = (x - w / 2) / 640 * vidW;
-            const ry = (y - h / 2) / 640 * vidH;
-            const rw = w / 640 * vidW;
-            const rh = h / 640 * vidH;
-            
-            const diameter = (rw + rh) / 2;
-            let severity = 'Low';
-            if (diameter > 150) severity = 'High';
-            else if (diameter > 80) severity = 'Medium';
-            
-            boxes.push({ box: [rx, ry, rw, rh], confidence: conf, severity: severity, diameter: Math.round(diameter) });
-        }
-    }
-    return applyNMS(boxes, IOU_THRESHOLD);
-}
+    detectionLoop = setInterval(async () => {
+        if (!video.videoWidth || video.paused) return;
 
-function applyNMS(boxes, iouThreshold) {
-    boxes.sort((a, b) => b.confidence - a.confidence);
-    const result = [];
-    while(boxes.length > 0) {
-        const current = boxes.shift();
-        result.push(current);
-        for (let i = boxes.length - 1; i >= 0; i--) {
-            if (calculateIoU(current.box, boxes[i].box) > iouThreshold) {
-                boxes.splice(i, 1);
+        captureCanvas.width = video.videoWidth;
+        captureCanvas.height = video.videoHeight;
+        captureCtx.drawImage(video, 0, 0);
+
+        const frameData = captureCanvas.toDataURL('image/jpeg', 0.7);
+
+        try {
+            const resp = await fetch('/api/detect-frame', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    frame: frameData,
+                    latitude: gpsLat,
+                    longitude: gpsLon,
+                    speed: gpsSpeed
+                })
+            });
+
+            if (!resp.ok) return;
+            const result = await resp.json();
+
+            drawDetections(result.detections, video.videoWidth, video.videoHeight);
+            document.getElementById('m-inference').textContent = result.inference_ms;
+
+            // FPS counter
+            frameCount++;
+            const now = Date.now();
+            if (now - lastFpsTime >= 1000) {
+                const fps = frameCount;
+                frameCount = 0;
+                lastFpsTime = now;
+                document.getElementById('badge-fps').textContent =
+                    `FPS: ${fps} | ${result.inference_ms}ms`;
             }
+
+            if (result.saved && result.saved.length > 0) {
+                result.saved.forEach(det => triggerWarning(det));
+            }
+        } catch (e) {
+            // Network error, silently continue
         }
-    }
-    return result;
+    }, DETECT_INTERVAL_MS);
 }
 
-function calculateIoU(box1, box2) {
-    const x1 = Math.max(box1[0], box2[0]);
-    const y1 = Math.max(box1[1], box2[1]);
-    const x2 = Math.min(box1[0] + box1[2], box2[0] + box2[2]);
-    const y2 = Math.min(box1[1] + box1[3], box2[1] + box2[3]);
-    
-    const interArea = Math.max(0, x2 - x1) * Math.max(0, y2 - y1);
-    const box1Area = box1[2] * box1[3];
-    const box2Area = box2[2] * box2[3];
-    return interArea / (box1Area + box2Area - interArea);
+function stopDetectionLoop() {
+    if (detectionLoop) {
+        clearInterval(detectionLoop);
+        detectionLoop = null;
+    }
+    const overlay = document.getElementById('camera-overlay');
+    const ctx = overlay.getContext('2d');
+    ctx.clearRect(0, 0, overlay.width, overlay.height);
 }
 
-function drawBoundingBoxes(detections, videoW, videoH) {
-    const canvas = document.getElementById('camera-overlay');
-    const ctx = canvas.getContext('2d');
-    
-    const uiRect = canvas.getBoundingClientRect();
-    if (canvas.width !== uiRect.width || canvas.height !== uiRect.height) {
-        canvas.width = uiRect.width;
-        canvas.height = uiRect.height;
-    }
-    
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+// ═══════════════════════════════════════════════
+// 4. DRAW BOUNDING BOXES on canvas overlay
+// ═══════════════════════════════════════════════
+function drawDetections(detections, vw, vh) {
+    const overlay = document.getElementById('camera-overlay');
+    if (overlay.width !== vw) overlay.width = vw;
+    if (overlay.height !== vh) overlay.height = vh;
+    const ctx = overlay.getContext('2d');
+    ctx.clearRect(0, 0, vw, vh);
 
-    if (!detections || detections.length === 0) {
-        document.getElementById('flash-overlay').classList.remove('active');
-        return;
-    }
+    if (!detections || detections.length === 0) return;
 
-    const scaleX = canvas.width / videoW;
-    const scaleY = canvas.height / videoH;
-    let highestSeverity = 'Low';
+    detections.forEach(det => {
+        const { x1, y1, x2, y2, confidence, class: cls } = det;
+        const w = x2 - x1, h = y2 - y1;
 
-    detections.forEach(d => {
-        const [x, y, w, h] = d.box;
-        
-        const scaledX = x * scaleX;
-        const scaledY = y * scaleY;
-        const scaledW = w * scaleX;
-        const scaledH = h * scaleY;
-
-        let color = '#3b82f6';
-        let bgFill = 'rgba(59, 130, 246, 0.2)';
-        
-        if (d.severity === 'High') {
-            color = '#ef4444';
-            bgFill = 'rgba(239, 68, 68, 0.2)';
-            highestSeverity = 'High';
-        } else if (d.severity === 'Medium') {
-            color = '#eab308';
-            bgFill = 'rgba(234, 179, 8, 0.2)';
-            if (highestSeverity !== 'High') highestSeverity = 'Medium';
-        }
+        let color = '#34C759';
+        if (confidence > 0.7) color = '#FF3B30';
+        else if (confidence > 0.4) color = '#FF9F0A';
 
         ctx.strokeStyle = color;
         ctx.lineWidth = 3;
-        ctx.fillStyle = bgFill;
-        ctx.beginPath();
-        ctx.roundRect(scaledX, scaledY, scaledW, scaledH, 8);
-        ctx.fill();
-        ctx.stroke();
+        ctx.strokeRect(x1, y1, w, h);
 
+        // Corner highlights
+        const cornerLen = Math.min(w, h) * 0.25;
+        ctx.strokeStyle = '#FFFFFF';
+        ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(x1, y1 + cornerLen); ctx.lineTo(x1, y1); ctx.lineTo(x1 + cornerLen, y1); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(x2 - cornerLen, y1); ctx.lineTo(x2, y1); ctx.lineTo(x2, y1 + cornerLen); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(x1, y2 - cornerLen); ctx.lineTo(x1, y2); ctx.lineTo(x1 + cornerLen, y2); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(x2 - cornerLen, y2); ctx.lineTo(x2, y2); ctx.lineTo(x2, y2 - cornerLen); ctx.stroke();
+
+        // Label
+        const label = `YOLOv9: ${cls} ${(confidence * 100).toFixed(0)}%`;
+        ctx.font = 'bold 14px Outfit';
+        const tw = ctx.measureText(label).width;
         ctx.fillStyle = color;
-        ctx.font = 'bold 12px Outfit, sans-serif';
-        const text = `${d.severity} ${d.diameter}cm`;
-        const textWidth = ctx.measureText(text).width;
-        
-        ctx.beginPath();
-        ctx.roundRect(scaledX, scaledY - 22, textWidth + 12, 22, [6, 6, 0, 0]);
-        ctx.fill();
-
-        ctx.fillStyle = '#ffffff';
-        ctx.fillText(text, scaledX + 6, scaledY - 6);
+        ctx.fillRect(x1, y1 - 22, tw + 12, 22);
+        ctx.fillStyle = '#0A0D12';
+        ctx.fillText(label, x1 + 6, y1 - 6);
     });
+}
 
-    if (highestSeverity === 'High' || highestSeverity === 'Medium') {
-        document.getElementById('flash-overlay').classList.add('active');
-        if (navigator.vibrate) navigator.vibrate([200, 100, 200]);
+// ═══════════════════════════════════════════════
+// 5. WARNING SYSTEM — Visual + Audio TTS
+// ═══════════════════════════════════════════════
+function triggerWarning(det) {
+    const flash = document.getElementById('flash-overlay');
+    const isMedium = det.severity === 'Medium';
+    const isLow = det.severity === 'Low';
+
+    // Flash screen
+    flash.className = 'flash-overlay ' + (isLow ? '' : isMedium ? 'warning' : 'danger');
+    setTimeout(() => { flash.className = 'flash-overlay'; }, 2000);
+
+    // Warning card
+    const radius = det.diameter / 2;
+    const vol = det.volume || Math.max(0.1, Math.round((0.5 * 3.14159 * Math.pow(radius, 2) * det.depth / 1000) * 10) / 10);
+
+    document.getElementById('warning-content').innerHTML = `
+        <div class="warning-danger ${isMedium ? 'medium' : ''}">
+            <h3>⚠️ LUBANG TERDETEKSI!</h3>
+            <p>${det.severity === 'High' ? 'BAHAYA TINGGI — Kurangi kecepatan segera!' :
+                 det.severity === 'Medium' ? 'Waspada — Lubang sedang di depan.' :
+                 'Lubang kecil terdeteksi.'}</p>
+            <div class="warn-grid" style="grid-template-columns: repeat(2, 1fr);">
+                <div class="warn-item"><span class="wl">Diameter</span><span class="wv" style="color:var(--warn)">${det.diameter} cm</span></div>
+                <div class="warn-item"><span class="wl">Kedalaman</span><span class="wv" style="color:var(--danger)">${det.depth} cm</span></div>
+                <div class="warn-item"><span class="wl">Volume</span><span class="wv" style="color:var(--cyan)">${vol} L</span></div>
+                <div class="warn-item"><span class="wl">Kecepatan</span><span class="wv">${det.speed} km/h</span></div>
+            </div>
+        </div>
+    `;
+
+    // Voice alert
+    speakAlert(det.severity, det.diameter, det.depth);
+
+    // Vibrate device
+    if ('vibrate' in navigator) {
+        if (det.severity === 'High') navigator.vibrate([300, 100, 300, 100, 500]);
+        else if (det.severity === 'Medium') navigator.vibrate([200, 100, 200]);
+        else navigator.vibrate(150);
+    }
+
+    // Reset after 5s
+    setTimeout(resetWarning, 5000);
+}
+
+function resetWarning() {
+    document.getElementById('warning-content').innerHTML = `
+        <div class="warning-safe">
+            <div class="safe-icon">✓</div>
+            <span>Jalur Aman</span>
+        </div>
+    `;
+}
+
+function speakAlert(severity, diameter, depth) {
+    if (!('speechSynthesis' in window)) return;
+    window.speechSynthesis.cancel();
+
+    let msg = 'Peringatan! ';
+    if (severity === 'High') {
+        msg += `Lubang besar terdeteksi di depan! Kedalaman ${Math.round(depth)} sentimeter. Segera kurangi kecepatan!`;
+    } else if (severity === 'Medium') {
+        msg += `Lubang sedang terdeteksi. Harap waspada.`;
     } else {
-        document.getElementById('flash-overlay').classList.remove('active');
+        msg += `Lubang kecil terdeteksi.`;
     }
+
+    const utt = new SpeechSynthesisUtterance(msg);
+    utt.lang = 'id-ID';
+    utt.rate = 1.05;
+    window.speechSynthesis.speak(utt);
 }
 
-async function saveDetection(det, video) {
-    const tmpCanvas = document.createElement('canvas');
-    tmpCanvas.width = 320;
-    tmpCanvas.height = 320;
-    tmpCanvas.getContext('2d').drawImage(video, 0, 0, 320, 320);
-    const base64Image = tmpCanvas.toDataURL('image/jpeg', 0.5);
-
-    try {
-        await fetch('/api/detect', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                image: base64Image,
-                latitude: gpsLat,
-                longitude: gpsLon,
-                speed: gpsSpeed,
-                save_only: true, 
-                detection: det
-            })
-        });
-        refreshStats();
-        loadExistingData();
-    } catch(err) {
-        console.error("Gagal save detection:", err);
-    }
-}
-
-// ── Chart.js & UI ──
+// ═══════════════════════════════════════════════
+// 6. CHART.JS
+// ═══════════════════════════════════════════════
 function initChart() {
-    const chartCanvas = document.getElementById('severityChart');
-    if (!chartCanvas) return;
-    const ctx = chartCanvas.getContext('2d');
-    sevChart = new Chart(ctx, {
+    const canvas = document.getElementById('severityChart');
+    if (!canvas) return;
+    sevChart = new Chart(canvas.getContext('2d'), {
         type: 'doughnut',
         data: {
-            labels: ['High', 'Medium', 'Low'],
-            datasets: [{ data: [0, 0, 0], backgroundColor: ['#ef4444', '#eab308', '#3b82f6'], borderWidth: 0 }]
+            labels: ['Rendah', 'Sedang', 'Tinggi'],
+            datasets: [{ data: [0, 0, 0], backgroundColor: ['#34C759', '#FF9F0A', '#FF3B30'], borderColor: '#121821', borderWidth: 2 }]
         },
-        options: { responsive: true, maintainAspectRatio: false, cutout: '70%', plugins: { legend: { position: 'right', labels: { color: '#f8fafc' } } } }
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'right', labels: { color: '#8B9DB8', font: { size: 10 } } }
+            }
+        }
     });
 }
+
+function refreshStats() {
+    fetch('/api/stats').then(r => r.json()).then(s => {
+        document.getElementById('m-total').textContent = s.total;
+        document.getElementById('m-high').textContent = s.severity_distribution.High || 0;
+        if (sevChart) {
+            sevChart.data.datasets[0].data = [
+                s.severity_distribution.Low || 0,
+                s.severity_distribution.Medium || 0,
+                s.severity_distribution.High || 0
+            ];
+            sevChart.update();
+        }
+    });
+}
+
+// ═══════════════════════════════════════════════
+// 7. LOG TABLE — Mobile-friendly with Google Maps
+// ═══════════════════════════════════════════════
+function addToLogTable(det) {
+    const tbody = document.getElementById('log-body');
+    const tr = document.createElement('tr');
+    tr.style.cursor = 'pointer';
+    tr.addEventListener('click', (e) => {
+        // Jangan buka modal jika mengklik link Google Maps langsung
+        if (!e.target.classList.contains('gmaps-link')) {
+            openPotholeModal(det);
+        }
+    });
+
+    const timeShort = det.timestamp ? det.timestamp.split(' ')[1] || det.timestamp : '--';
+    tr.innerHTML = `
+        <td>${det.id}</td>
+        <td>${timeShort}</td>
+        <td>${det.speed} km/h</td>
+        <td><span class="badge-sev ${det.severity.toLowerCase()}">${det.severity}</span></td>
+        <td><a href="${det.google_maps_url}" target="_blank" class="gmaps-link" onclick="event.stopPropagation();">📍 Maps</a></td>
+    `;
+    if (tbody.firstChild) tbody.insertBefore(tr, tbody.firstChild);
+    else tbody.appendChild(tr);
+}
+
+// ═══════════════════════════════════════════════
+// LIGHTBOX / PHOTO VIEWER MODAL CONTROLS
+// ═══════════════════════════════════════════════
+function openPotholeModal(det) {
+    document.getElementById('modal-img').src = det.snapshot_path || '';
+    
+    const sevBadge = document.getElementById('modal-severity');
+    sevBadge.textContent = det.severity;
+    sevBadge.className = 'm-val badge-sev ' + det.severity.toLowerCase();
+    
+    document.getElementById('modal-diameter').textContent = `${det.diameter} cm`;
+    document.getElementById('modal-depth').textContent = `${det.depth} cm`;
+    
+    // Hitung volume jika belum ada di objek det (sebagai fallback dinamis)
+    const radius = det.diameter / 2;
+    const vol = det.volume || Math.max(0.1, Math.round((0.5 * 3.14159 * Math.pow(radius, 2) * det.depth / 1000) * 10) / 10);
+    document.getElementById('modal-volume').textContent = `${vol} Liter`;
+    
+    document.getElementById('modal-time').textContent = det.timestamp || '--';
+    document.getElementById('modal-speed').textContent = `${det.speed} km/h`;
+    
+    const lat = typeof det.latitude === 'number' ? det.latitude.toFixed(6) : det.latitude;
+    const lon = typeof det.longitude === 'number' ? det.longitude.toFixed(6) : det.longitude;
+    document.getElementById('modal-coords').textContent = `${lat}, ${lon}`;
+    document.getElementById('modal-maps-btn').href = det.google_maps_url || '#';
+    
+    document.getElementById('pothole-modal').style.display = 'flex';
+}
+
+function closePotholeModal() {
+    document.getElementById('pothole-modal').style.display = 'none';
+}
+
+
+// ═══════════════════════════════════════════════
+// 8. LOAD EXISTING DATA
+// ═══════════════════════════════════════════════
+function loadExistingData() {
+    fetch('/api/potholes').then(r => r.json()).then(data => {
+        data.forEach(p => addToLogTable(p));
+    });
+    refreshStats();
+}
+
+// ═══════════════════════════════════════════════
+// 9. SSE — Real-time events from server
+// ═══════════════════════════════════════════════
+function setupSSE() {
+    eventSource = new EventSource('/stream');
+    eventSource.onmessage = (ev) => {
+        const det = JSON.parse(ev.data);
+        addToLogTable(det);
+        refreshStats();
+    };
+}
+
+// ═══════════════════════════════════════════════
+// 10. STOP SYSTEM
+// ═══════════════════════════════════════════════
+function stopSystem() {
+    isRunning = false;
+    stopDetectionLoop();
+    stopCamera();
+    stopGPS();
+
+    // Go back to splash screen
+    document.getElementById('app-container').style.display = 'none';
+    document.getElementById('splash-screen').style.display = 'flex';
+    const btn = document.getElementById('btn-launch');
+    btn.innerHTML = '<span class="btn-icon">▶</span><span>Mulai Deteksi</span>';
+    btn.disabled = false;
+}
+
+// ═══════════════════════════════════════════════
+// 11. BOTTOM SHEET (swipe toggle)
+// ═══════════════════════════════════════════════
 function setupBottomSheet() {
     const sheet = document.getElementById('bottom-sheet');
     const handle = document.getElementById('sheet-handle');
-    handle.addEventListener('click', () => sheet.classList.toggle('open'));
+    if (!sheet || !handle) return;
+
+    let expanded = false;
+
+    handle.addEventListener('click', () => {
+        expanded = !expanded;
+        sheet.classList.toggle('expanded', expanded);
+    });
+
+    // Swipe gesture
+    let startY = 0;
+    handle.addEventListener('touchstart', (e) => {
+        startY = e.touches[0].clientY;
+    }, { passive: true });
+
+    handle.addEventListener('touchend', (e) => {
+        const endY = e.changedTouches[0].clientY;
+        const diff = startY - endY;
+        if (diff > 40) {
+            // Swipe up → expand
+            expanded = true;
+            sheet.classList.add('expanded');
+        } else if (diff < -40) {
+            // Swipe down → collapse
+            expanded = false;
+            sheet.classList.remove('expanded');
+        }
+    }, { passive: true });
 }
-function appendLogItem(item) {
-    const list = document.getElementById('log-body');
-    if (!list) return;
-    const tr = document.createElement('tr');
-    let color = '#3b82f6';
-    if (item.severity === 'High') color = '#ef4444';
-    else if (item.severity === 'Medium') color = '#eab308';
-    const snapHtml = item.snapshot_path ? `<img src="${item.snapshot_path}" alt="Snap" style="width:40px;height:40px;object-fit:cover;border-radius:4px;">` : `-`;
-    tr.innerHTML = `
-        <td>${snapHtml}</td>
-        <td style="font-size:0.85rem;">${item.timestamp.split(' ')[1]}</td>
-        <td><span style="color:${color};font-weight:bold;border:1px solid ${color};padding:2px 6px;border-radius:4px;font-size:0.75rem;">${item.severity}</span></td>
-        <td style="font-size:0.85rem;color:#94a3b8;">${item.diameter}cm</td>
+
+// ═══════════════════════════════════════════════
+// 12. HELPERS
+// ═══════════════════════════════════════════════
+function updatePill(id, text, dotClass) {
+    const pill = document.getElementById(id);
+    if (!pill) return;
+    const dot = pill.querySelector('.dot');
+    pill.childNodes[pill.childNodes.length - 1].textContent = ' ' + text;
+    if (dot) {
+        dot.className = 'dot';
+        if (dotClass) dot.classList.add(dotClass);
+    }
+}
+
+// Export data as JSON
+function exportJSON() {
+    fetch('/api/potholes').then(r => r.json()).then(data => {
+        const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `deteksi_lubang_${new Date().toISOString().slice(0, 10)}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+    });
+}
+
+// Clear all data
+function clearAll() {
+    if (!confirm('Hapus SEMUA data deteksi lubang?')) return;
+    fetch('/api/potholes').then(r => r.json()).then(data => {
+        const promises = data.map(p => fetch(`/api/potholes/${p.id}`, { method: 'DELETE' }));
+        Promise.all(promises).then(() => {
+            document.getElementById('log-body').innerHTML = '';
+            refreshStats();
+        });
+    });
+}
+
+// ═══════════════════════════════════════════════
+// 13. TEST STATIC MODE — Uji tanpa GPS / kecepatan
+// ═══════════════════════════════════════════════
+
+/**
+ * Aktifkan/nonaktifkan panel Test Static.
+ * Jika panel belum ada, buat dahulu.
+ */
+function toggleTestMode() {
+    testMode = !testMode;
+    let panel = document.getElementById('test-mode-panel');
+    if (!panel) {
+        panel = createTestPanel();
+        document.body.appendChild(panel);
+    }
+    panel.style.display = testMode ? 'block' : 'none';
+
+    const btn = document.getElementById('btn-test-mode');
+    if (btn) {
+        btn.textContent = testMode ? '🧪 Tutup Test' : '🧪 Mode Test';
+        btn.style.background = testMode ? 'var(--danger)' : '';
+    }
+}
+
+function createTestPanel() {
+    const panel = document.createElement('div');
+    panel.id = 'test-mode-panel';
+    panel.style.cssText = `
+        position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+        background: #0A0D12EE; z-index: 9999; overflow-y: auto;
+        padding: 20px; display: none; font-family: Outfit, sans-serif;
     `;
-    list.insertBefore(tr, list.firstChild);
-    if (list.children.length > 50) list.lastChild.remove();
+    panel.innerHTML = `
+        <div style="max-width:600px; margin:0 auto;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+                <h2 style="color:#00E5FF; margin:0;">🧪 Mode Test Static</h2>
+                <button onclick="toggleTestMode()" style="
+                    background:#FF3B30; color:#fff; border:none;
+                    padding:8px 16px; border-radius:8px; cursor:pointer;
+                    font-size:14px; font-family:Outfit,sans-serif;
+                ">✕ Tutup</button>
+            </div>
+            <p style="color:#8B9DB8; margin-bottom:16px;">
+                Upload foto atau ambil dari kamera — deteksi dijalankan <b style='color:#fff'>tanpa filter kecepatan</b>.
+                Cocok untuk menguji model di tempat diam.
+            </p>
+
+            <!-- Upload / Kamera -->
+            <div style="display:flex; gap:10px; margin-bottom:16px;">
+                <label for="test-file-input" style="
+                    flex:1; padding:12px; background:#1E2533; border:2px dashed #2A3447;
+                    border-radius:10px; text-align:center; cursor:pointer; color:#8B9DB8;
+                    font-size:13px;
+                ">📁 Pilih Foto</label>
+                <input id="test-file-input" type="file" accept="image/*" capture="environment"
+                    style="display:none;" onchange="runTestOnFile(this)">
+                <button onclick="runTestOnCamera()" style="
+                    flex:1; padding:12px; background:#1E2533; border:2px solid #2A3447;
+                    border-radius:10px; cursor:pointer; color:#8B9DB8; font-size:13px;
+                    font-family:Outfit,sans-serif;
+                ">📷 Dari Kamera Live</button>
+            </div>
+
+            <!-- Preview -->
+            <div id="test-preview-wrap" style="position:relative; background:#121821; border-radius:10px; overflow:hidden; margin-bottom:16px; display:none;">
+                <img id="test-preview-img" style="width:100%; display:block;">
+                <canvas id="test-overlay-canvas" style="position:absolute;top:0;left:0;width:100%;height:100%;"></canvas>
+            </div>
+
+            <!-- Result -->
+            <div id="test-result-box" style="
+                background:#1E2533; border-radius:10px; padding:16px;
+                color:#8B9DB8; font-size:13px; min-height:80px;
+                white-space: pre-wrap; font-family: monospace;
+            ">Belum ada hasil. Upload foto untuk mulai uji.</div>
+        </div>
+    `;
+    return panel;
 }
-async function loadExistingData() {
-    try {
-        const res = await fetch('/api/potholes');
-        const data = await res.json();
-        const list = document.getElementById('log-body');
-        if (data.length > 0 && list) {
-            list.innerHTML = '';
-            data.forEach(item => appendLogItem(item));
-        }
-        refreshStats();
-    } catch (err) {}
+
+async function runTestOnFile(input) {
+    if (!input.files || !input.files[0]) return;
+    const file = input.files[0];
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+        const dataUrl = e.target.result;
+        await runTestDetect(dataUrl);
+    };
+    reader.readAsDataURL(file);
 }
-async function refreshStats() {
+
+async function runTestOnCamera() {
+    const video = document.getElementById('camera-video');
+    if (!video || !video.videoWidth) {
+        document.getElementById('test-result-box').textContent =
+            '⚠️ Kamera belum aktif. Tekan Mulai Deteksi dahulu, lalu buka Test Mode.';
+        return;
+    }
+    const cap = document.createElement('canvas');
+    cap.width = video.videoWidth;
+    cap.height = video.videoHeight;
+    cap.getContext('2d').drawImage(video, 0, 0);
+    const dataUrl = cap.toDataURL('image/jpeg', 0.85);
+    await runTestDetect(dataUrl);
+}
+
+async function runTestDetect(dataUrl) {
+    // Tampilkan preview
+    const wrap = document.getElementById('test-preview-wrap');
+    const img  = document.getElementById('test-preview-img');
+    const resultBox = document.getElementById('test-result-box');
+    wrap.style.display = 'block';
+    img.src = dataUrl;
+    resultBox.textContent = '⏳ Menjalankan deteksi...';
+
+    let response;
     try {
-        const res = await fetch('/api/stats');
-        const data = await res.json();
-        const t = document.getElementById('stat-total'); if (t) t.textContent = data.total;
-        const ad = document.getElementById('stat-avg-dia'); if (ad) ad.textContent = data.avg_diameter + 'cm';
-        const ap = document.getElementById('stat-avg-dep'); if (ap) ap.textContent = data.avg_depth + 'cm';
-        if (sevChart) {
-            sevChart.data.datasets[0].data = [ data.severity_distribution.High || 0, data.severity_distribution.Medium || 0, data.severity_distribution.Low || 0 ];
-            sevChart.update();
+        response = await fetch('/api/test-detect', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ frame: dataUrl })
+        });
+    } catch (err) {
+        resultBox.textContent = `❌ Gagal koneksi ke server: ${err.message}`;
+        return;
+    }
+
+    if (!response.ok) {
+        try {
+            const errData = await response.json();
+            resultBox.textContent = `❌ Server error: ${response.status}\nDetail: ${errData.message || errData.error}`;
+        } catch (e) {
+            resultBox.textContent = `❌ Server error: ${response.status} ${response.statusText}`;
         }
-    } catch (err) {}
+        return;
+    }
+
+    const result = await response.json();
+
+    // Gambar bounding box di atas canvas overlay
+    img.onload = () => {
+        const canvas = document.getElementById('test-overlay-canvas');
+        canvas.width  = img.naturalWidth;
+        canvas.height = img.naturalHeight;
+        const ctx = canvas.getContext('2d');
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // Deteksi yang LOLOS (hijau)
+        (result.detections || []).forEach(det => {
+            const { x1, y1, x2, y2, confidence, class: cls } = det;
+            ctx.strokeStyle = '#34C759';
+            ctx.lineWidth = 4;
+            ctx.strokeRect(x1, y1, x2 - x1, y2 - y1);
+            ctx.fillStyle = '#34C75988';
+            ctx.fillRect(x1, y1, x2 - x1, y2 - y1);
+            ctx.fillStyle = '#fff';
+            ctx.font = 'bold 16px Outfit';
+            ctx.fillText(`✓ ${cls} ${(confidence*100).toFixed(0)}%`, x1 + 4, y1 + 20);
+        });
+
+        // Deteksi yang DIBUANG (merah semi-transparan)
+        (result.rejected || []).forEach(det => {
+            const { x1, y1, x2, y2, confidence, class: cls, reject_reason } = det;
+            ctx.strokeStyle = '#FF3B3066';
+            ctx.lineWidth = 2;
+            ctx.setLineDash([6, 4]);
+            ctx.strokeRect(x1, y1, x2 - x1, y2 - y1);
+            ctx.setLineDash([]);
+            ctx.fillStyle = '#FF3B3033';
+            ctx.fillRect(x1, y1, x2 - x1, y2 - y1);
+            ctx.fillStyle = '#FF9F0A';
+            ctx.font = '12px Outfit';
+            ctx.fillText(`✗ ${reject_reason || 'filtered'}`, x1 + 4, y1 + 16);
+        });
+    };
+    // Trigger onload jika gambar sudah cached
+    if (img.complete) img.onload();
+
+    // Tampilkan teks hasil
+    const passed   = result.detections?.length || 0;
+    const rejected = result.rejected?.length   || 0;
+    const config   = result.config || {};
+
+    let txt = `📊 HASIL DETEKSI\n`;
+    txt += `━━━━━━━━━━━━━━━━━━━━━\n`;
+    txt += `✅ Lolos filter  : ${passed} deteksi\n`;
+    txt += `❌ Dibuang filter: ${rejected} deteksi\n`;
+    txt += `⚡ Waktu inferensi: ${result.inference_ms} ms\n`;
+    txt += `📐 Ukuran frame  : ${result.frame_size?.w}×${result.frame_size?.h}\n`;
+    txt += `\n⚙️  KONFIGURASI AKTIF\n`;
+    txt += `━━━━━━━━━━━━━━━━━━━━━\n`;
+    txt += `  Model          : ${config.model}\n`;
+    txt += `  CONF_THRESHOLD : ${config.conf_threshold}\n`;
+    txt += `  ROI_BOTTOM_FRAC: ${config.roi_bottom_frac} (objek harus di bawah ${(config.roi_bottom_frac*100).toFixed(0)}% frame)\n`;
+    txt += `  Aspek rasio    : ${config.min_aspect_ratio} – ${config.max_aspect_ratio}\n`;
+
+    if (rejected > 0) {
+        txt += `\n🔍 ALASAN DIBUANG\n`;
+        txt += `━━━━━━━━━━━━━━━━━━━━━\n`;
+        (result.rejected || []).forEach((det, i) => {
+            txt += `  [${i+1}] ${det.class} conf=${(det.confidence*100).toFixed(0)}% → ${det.reject_reason}\n`;
+        });
+    }
+
+    if (passed === 0 && rejected === 0) {
+        txt += `\n⚠️  Model tidak mendeteksi objek apapun.\n`;
+        txt += `Kemungkinan: model yolov9t.pt belum dilatih dengan dataset lubang jalan.\n`;
+        txt += `Coba ganti model dengan model yang sudah fine-tuned untuk pothole detection.`;
+    }
+
+    resultBox.textContent = txt;
 }
