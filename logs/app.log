@@ -1,0 +1,294 @@
+2026-06-07 23:41:10,991 [INFO] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:7860
+ * Running on http://192.168.1.17:7860
+2026-06-07 23:41:10,991 [INFO] [33mPress CTRL+C to quit[0m
+2026-06-07 23:41:15,299 [INFO] 127.0.0.1 - - [07/Jun/2026 23:41:15] "GET / HTTP/1.1" 200 -
+2026-06-07 23:41:15,673 [INFO] 127.0.0.1 - - [07/Jun/2026 23:41:15] "GET /static/manifest.json HTTP/1.1" 200 -
+2026-06-07 23:41:15,677 [INFO] 127.0.0.1 - - [07/Jun/2026 23:41:15] "GET /static/js/app.js HTTP/1.1" 200 -
+2026-06-07 23:41:15,677 [INFO] 127.0.0.1 - - [07/Jun/2026 23:41:15] "GET /static/css/style.css HTTP/1.1" 200 -
+2026-06-07 23:41:15,852 [INFO] 127.0.0.1 - - [07/Jun/2026 23:41:15] "GET /api/stats HTTP/1.1" 200 -
+2026-06-07 23:41:15,863 [INFO] 127.0.0.1 - - [07/Jun/2026 23:41:15] "GET /api/potholes HTTP/1.1" 200 -
+2026-06-07 23:41:15,920 [ERROR] Error:
+Traceback (most recent call last):
+  File "C:\Users\juanr\AppData\Roaming\Python\Python311\site-packages\flask\app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\juanr\AppData\Roaming\Python\Python311\site-packages\flask\app.py", line 891, in dispatch_request
+    self.raise_routing_exception(req)
+  File "C:\Users\juanr\AppData\Roaming\Python\Python311\site-packages\flask\app.py", line 500, in raise_routing_exception
+    raise request.routing_exception  # type: ignore[misc]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\juanr\AppData\Roaming\Python\Python311\site-packages\flask\ctx.py", line 362, in match_request
+    result = self.url_adapter.match(return_rule=True)  # type: ignore
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\juanr\AppData\Roaming\Python\Python311\site-packages\werkzeug\routing\map.py", line 629, in match
+    raise NotFound() from None
+werkzeug.exceptions.NotFound: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+2026-06-07 23:41:16,051 [INFO] 127.0.0.1 - - [07/Jun/2026 23:41:16] "[35m[1mGET /favicon.ico HTTP/1.1[0m" 500 -
+2026-06-07 23:41:35,851 [INFO] 127.0.0.1 - - [07/Jun/2026 23:41:35] "GET /stream HTTP/1.1" 200 -
+2026-06-07 23:42:33,053 [INFO] Memulai pemuatan model YOLOv9 lokal...
+2026-06-07 23:42:33,061 [INFO] Memulai pemuatan model YOLOv9 lokal...
+2026-06-07 23:42:34,378 [INFO] Memulai pemuatan model YOLOv9 lokal...
+2026-06-07 23:42:34,699 [INFO] Memulai pemuatan model YOLOv9 lokal...
+2026-06-07 23:42:35,451 [INFO] Memulai pemuatan model YOLOv9 lokal...
+2026-06-07 23:43:01,526 [INFO] YOLOv9 model loaded successfully.
+2026-06-07 23:43:01,535 [INFO] YOLOv9 model loaded successfully.
+2026-06-07 23:43:01,990 [INFO] YOLOv9 model loaded successfully.
+2026-06-07 23:43:02,102 [INFO] YOLOv9 model loaded successfully.
+2026-06-07 23:43:02,132 [INFO] YOLOv9 model loaded successfully.
+2026-06-07 23:43:02,864 [INFO] 127.0.0.1 - - [07/Jun/2026 23:43:02] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-06-07 23:43:03,563 [INFO] 127.0.0.1 - - [07/Jun/2026 23:43:03] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-06-07 23:43:04,272 [INFO] 127.0.0.1 - - [07/Jun/2026 23:43:04] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-06-07 23:43:05,059 [INFO] 127.0.0.1 - - [07/Jun/2026 23:43:05] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-06-07 23:43:05,739 [INFO] 127.0.0.1 - - [07/Jun/2026 23:43:05] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-06-07 23:43:06,420 [INFO] 127.0.0.1 - - [07/Jun/2026 23:43:06] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-06-07 23:43:07,043 [INFO] 127.0.0.1 - - [07/Jun/2026 23:43:07] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-06-07 23:43:07,663 [INFO] 127.0.0.1 - - [07/Jun/2026 23:43:07] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-06-07 23:43:08,349 [INFO] 127.0.0.1 - - [07/Jun/2026 23:43:08] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-06-07 23:43:09,415 [INFO] 127.0.0.1 - - [07/Jun/2026 23:43:09] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-06-07 23:43:10,133 [INFO] 127.0.0.1 - - [07/Jun/2026 23:43:10] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-06-07 23:43:10,803 [INFO] 127.0.0.1 - - [07/Jun/2026 23:43:10] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-06-07 23:43:11,436 [INFO] 127.0.0.1 - - [07/Jun/2026 23:43:11] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-06-07 23:43:12,081 [INFO] 127.0.0.1 - - [07/Jun/2026 23:43:12] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-06-07 23:43:12,937 [INFO] 127.0.0.1 - - [07/Jun/2026 23:43:12] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-06-07 23:43:13,627 [INFO] 127.0.0.1 - - [07/Jun/2026 23:43:13] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-06-07 23:43:14,265 [INFO] 127.0.0.1 - - [07/Jun/2026 23:43:14] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-06-07 23:43:14,965 [INFO] 127.0.0.1 - - [07/Jun/2026 23:43:14] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-06-07 23:43:15,804 [INFO] 127.0.0.1 - - [07/Jun/2026 23:43:15] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-06-07 23:43:16,695 [INFO] 127.0.0.1 - - [07/Jun/2026 23:43:16] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-06-07 23:43:18,391 [INFO] 127.0.0.1 - - [07/Jun/2026 23:43:18] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-06-07 23:43:19,829 [INFO] 127.0.0.1 - - [07/Jun/2026 23:43:19] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-06-07 23:43:21,062 [INFO] 127.0.0.1 - - [07/Jun/2026 23:43:21] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-06-07 23:43:22,298 [INFO] 127.0.0.1 - - [07/Jun/2026 23:43:22] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-06-07 23:43:23,794 [INFO] 127.0.0.1 - - [07/Jun/2026 23:43:23] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-06-07 23:43:25,177 [INFO] 127.0.0.1 - - [07/Jun/2026 23:43:25] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-06-07 23:43:26,357 [INFO] 127.0.0.1 - - [07/Jun/2026 23:43:26] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-06-07 23:43:27,756 [INFO] 127.0.0.1 - - [07/Jun/2026 23:43:27] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-06-07 23:43:28,942 [INFO] 127.0.0.1 - - [07/Jun/2026 23:43:28] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-06-07 23:43:30,883 [INFO] 127.0.0.1 - - [07/Jun/2026 23:43:30] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-06-07 23:43:32,157 [INFO] 127.0.0.1 - - [07/Jun/2026 23:43:32] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-06-07 23:43:32,938 [INFO] 127.0.0.1 - - [07/Jun/2026 23:43:32] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-06-07 23:43:33,711 [INFO] 127.0.0.1 - - [07/Jun/2026 23:43:33] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-06-07 23:43:34,454 [INFO] 127.0.0.1 - - [07/Jun/2026 23:43:34] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-06-07 23:43:35,158 [INFO] 127.0.0.1 - - [07/Jun/2026 23:43:35] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-06-07 23:43:35,973 [INFO] 127.0.0.1 - - [07/Jun/2026 23:43:35] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-06-07 23:44:48,301 [INFO] 127.0.0.1 - - [07/Jun/2026 23:44:48] "GET / HTTP/1.1" 200 -
+2026-06-07 23:44:48,358 [INFO] 127.0.0.1 - - [07/Jun/2026 23:44:48] "GET /static/css/style.css HTTP/1.1" 200 -
+2026-06-07 23:44:48,361 [INFO] 127.0.0.1 - - [07/Jun/2026 23:44:48] "GET /static/js/app.js HTTP/1.1" 200 -
+2026-06-07 23:44:48,362 [INFO] 127.0.0.1 - - [07/Jun/2026 23:44:48] "[36mGET /static/manifest.json HTTP/1.1[0m" 304 -
+2026-06-07 23:44:48,453 [INFO] 127.0.0.1 - - [07/Jun/2026 23:44:48] "GET /api/potholes HTTP/1.1" 200 -
+2026-06-07 23:44:48,460 [ERROR] Error:
+Traceback (most recent call last):
+  File "C:\Users\juanr\AppData\Roaming\Python\Python311\site-packages\flask\app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\juanr\AppData\Roaming\Python\Python311\site-packages\flask\app.py", line 891, in dispatch_request
+    self.raise_routing_exception(req)
+  File "C:\Users\juanr\AppData\Roaming\Python\Python311\site-packages\flask\app.py", line 500, in raise_routing_exception
+    raise request.routing_exception  # type: ignore[misc]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\juanr\AppData\Roaming\Python\Python311\site-packages\flask\ctx.py", line 362, in match_request
+    result = self.url_adapter.match(return_rule=True)  # type: ignore
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\juanr\AppData\Roaming\Python\Python311\site-packages\werkzeug\routing\map.py", line 629, in match
+    raise NotFound() from None
+werkzeug.exceptions.NotFound: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+2026-06-07 23:44:48,469 [INFO] 127.0.0.1 - - [07/Jun/2026 23:44:48] "GET /api/stats HTTP/1.1" 200 -
+2026-06-07 23:44:48,474 [INFO] 127.0.0.1 - - [07/Jun/2026 23:44:48] "[35m[1mGET /favicon.ico HTTP/1.1[0m" 500 -
+2026-06-07 23:45:08,448 [INFO] 127.0.0.1 - - [07/Jun/2026 23:45:08] "GET /stream HTTP/1.1" 200 -
+2026-06-07 23:46:44,369 [INFO] 127.0.0.1 - - [07/Jun/2026 23:46:44] "GET / HTTP/1.1" 200 -
+2026-06-07 23:46:44,402 [INFO] 127.0.0.1 - - [07/Jun/2026 23:46:44] "GET /static/css/style.css HTTP/1.1" 200 -
+2026-06-07 23:46:44,409 [INFO] 127.0.0.1 - - [07/Jun/2026 23:46:44] "GET /static/js/app.js HTTP/1.1" 200 -
+2026-06-07 23:46:44,412 [INFO] 127.0.0.1 - - [07/Jun/2026 23:46:44] "GET /static/manifest.json HTTP/1.1" 200 -
+2026-06-07 23:46:44,662 [INFO] 127.0.0.1 - - [07/Jun/2026 23:46:44] "GET /api/potholes HTTP/1.1" 200 -
+2026-06-07 23:46:44,665 [INFO] 127.0.0.1 - - [07/Jun/2026 23:46:44] "GET /api/stats HTTP/1.1" 200 -
+2026-06-07 23:46:44,724 [ERROR] Error:
+Traceback (most recent call last):
+  File "C:\Users\juanr\AppData\Roaming\Python\Python311\site-packages\flask\app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\juanr\AppData\Roaming\Python\Python311\site-packages\flask\app.py", line 891, in dispatch_request
+    self.raise_routing_exception(req)
+  File "C:\Users\juanr\AppData\Roaming\Python\Python311\site-packages\flask\app.py", line 500, in raise_routing_exception
+    raise request.routing_exception  # type: ignore[misc]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\juanr\AppData\Roaming\Python\Python311\site-packages\flask\ctx.py", line 362, in match_request
+    result = self.url_adapter.match(return_rule=True)  # type: ignore
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\juanr\AppData\Roaming\Python\Python311\site-packages\werkzeug\routing\map.py", line 629, in match
+    raise NotFound() from None
+werkzeug.exceptions.NotFound: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+2026-06-07 23:46:44,727 [INFO] 127.0.0.1 - - [07/Jun/2026 23:46:44] "[35m[1mGET /favicon.ico HTTP/1.1[0m" 500 -
+2026-06-07 23:46:51,902 [INFO] 127.0.0.1 - - [07/Jun/2026 23:46:51] "GET /gallery HTTP/1.1" 200 -
+2026-06-07 23:46:51,933 [INFO] 127.0.0.1 - - [07/Jun/2026 23:46:51] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+2026-06-07 23:46:51,940 [INFO] 127.0.0.1 - - [07/Jun/2026 23:46:51] "GET /static/css/gallery.css HTTP/1.1" 200 -
+2026-06-07 23:46:51,942 [INFO] 127.0.0.1 - - [07/Jun/2026 23:46:51] "GET /static/js/gallery.js HTTP/1.1" 200 -
+2026-06-07 23:46:51,951 [INFO] 127.0.0.1 - - [07/Jun/2026 23:46:51] "GET /api/potholes HTTP/1.1" 200 -
+2026-06-07 23:46:52,141 [ERROR] Error:
+Traceback (most recent call last):
+  File "C:\Users\juanr\AppData\Roaming\Python\Python311\site-packages\flask\app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\juanr\AppData\Roaming\Python\Python311\site-packages\flask\app.py", line 891, in dispatch_request
+    self.raise_routing_exception(req)
+  File "C:\Users\juanr\AppData\Roaming\Python\Python311\site-packages\flask\app.py", line 500, in raise_routing_exception
+    raise request.routing_exception  # type: ignore[misc]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\juanr\AppData\Roaming\Python\Python311\site-packages\flask\ctx.py", line 362, in match_request
+    result = self.url_adapter.match(return_rule=True)  # type: ignore
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\juanr\AppData\Roaming\Python\Python311\site-packages\werkzeug\routing\map.py", line 629, in match
+    raise NotFound() from None
+werkzeug.exceptions.NotFound: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+2026-06-07 23:46:52,144 [INFO] 127.0.0.1 - - [07/Jun/2026 23:46:52] "[35m[1mGET /favicon.ico HTTP/1.1[0m" 500 -
+2026-06-07 23:47:04,362 [INFO] 127.0.0.1 - - [07/Jun/2026 23:47:04] "GET / HTTP/1.1" 200 -
+2026-06-07 23:47:04,394 [INFO] 127.0.0.1 - - [07/Jun/2026 23:47:04] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+2026-06-07 23:47:04,413 [INFO] 127.0.0.1 - - [07/Jun/2026 23:47:04] "[36mGET /static/js/app.js HTTP/1.1[0m" 304 -
+2026-06-07 23:47:04,416 [INFO] 127.0.0.1 - - [07/Jun/2026 23:47:04] "[36mGET /static/manifest.json HTTP/1.1[0m" 304 -
+2026-06-07 23:47:04,457 [INFO] 127.0.0.1 - - [07/Jun/2026 23:47:04] "GET /api/potholes HTTP/1.1" 200 -
+2026-06-07 23:47:04,459 [INFO] 127.0.0.1 - - [07/Jun/2026 23:47:04] "GET /api/stats HTTP/1.1" 200 -
+2026-06-07 23:47:04,582 [ERROR] Error:
+Traceback (most recent call last):
+  File "C:\Users\juanr\AppData\Roaming\Python\Python311\site-packages\flask\app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\juanr\AppData\Roaming\Python\Python311\site-packages\flask\app.py", line 891, in dispatch_request
+    self.raise_routing_exception(req)
+  File "C:\Users\juanr\AppData\Roaming\Python\Python311\site-packages\flask\app.py", line 500, in raise_routing_exception
+    raise request.routing_exception  # type: ignore[misc]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\juanr\AppData\Roaming\Python\Python311\site-packages\flask\ctx.py", line 362, in match_request
+    result = self.url_adapter.match(return_rule=True)  # type: ignore
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\juanr\AppData\Roaming\Python\Python311\site-packages\werkzeug\routing\map.py", line 629, in match
+    raise NotFound() from None
+werkzeug.exceptions.NotFound: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+2026-06-07 23:47:04,586 [INFO] 127.0.0.1 - - [07/Jun/2026 23:47:04] "[35m[1mGET /favicon.ico HTTP/1.1[0m" 500 -
+2026-06-07 23:47:04,680 [INFO] 127.0.0.1 - - [07/Jun/2026 23:47:04] "GET /stream HTTP/1.1" 200 -
+2026-06-07 23:47:10,698 [INFO] 127.0.0.1 - - [07/Jun/2026 23:47:10] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-06-07 23:47:11,919 [INFO] 127.0.0.1 - - [07/Jun/2026 23:47:11] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-06-07 23:47:13,134 [INFO] 127.0.0.1 - - [07/Jun/2026 23:47:13] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-06-07 23:47:14,299 [INFO] 127.0.0.1 - - [07/Jun/2026 23:47:14] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-06-07 23:47:15,456 [INFO] 127.0.0.1 - - [07/Jun/2026 23:47:15] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-06-07 23:47:16,644 [INFO] 127.0.0.1 - - [07/Jun/2026 23:47:16] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-06-07 23:47:17,790 [INFO] 127.0.0.1 - - [07/Jun/2026 23:47:17] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-06-07 23:47:18,750 [INFO] 127.0.0.1 - - [07/Jun/2026 23:47:18] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-06-07 23:47:19,610 [INFO] 127.0.0.1 - - [07/Jun/2026 23:47:19] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-06-07 23:47:20,577 [INFO] 127.0.0.1 - - [07/Jun/2026 23:47:20] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-06-07 23:47:21,789 [INFO] 127.0.0.1 - - [07/Jun/2026 23:47:21] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-06-07 23:47:23,030 [INFO] 127.0.0.1 - - [07/Jun/2026 23:47:23] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-06-07 23:47:23,706 [INFO] 127.0.0.1 - - [07/Jun/2026 23:47:23] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-06-07 23:47:24,467 [INFO] 127.0.0.1 - - [07/Jun/2026 23:47:24] "GET /stream HTTP/1.1" 200 -
+2026-06-07 23:47:24,490 [INFO] 127.0.0.1 - - [07/Jun/2026 23:47:24] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-06-07 23:47:25,407 [INFO] 127.0.0.1 - - [07/Jun/2026 23:47:25] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-06-07 23:47:26,091 [INFO] 127.0.0.1 - - [07/Jun/2026 23:47:26] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-06-07 23:47:26,751 [INFO] 127.0.0.1 - - [07/Jun/2026 23:47:26] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-06-07 23:47:27,381 [INFO] 127.0.0.1 - - [07/Jun/2026 23:47:27] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-06-07 23:47:27,995 [INFO] 127.0.0.1 - - [07/Jun/2026 23:47:27] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-06-07 23:47:28,596 [INFO] 127.0.0.1 - - [07/Jun/2026 23:47:28] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-06-07 23:47:29,207 [INFO] 127.0.0.1 - - [07/Jun/2026 23:47:29] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-06-07 23:47:29,843 [INFO] 127.0.0.1 - - [07/Jun/2026 23:47:29] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-06-07 23:47:30,486 [INFO] 127.0.0.1 - - [07/Jun/2026 23:47:30] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-06-07 23:47:31,106 [INFO] 127.0.0.1 - - [07/Jun/2026 23:47:31] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-06-07 23:47:31,737 [INFO] 127.0.0.1 - - [07/Jun/2026 23:47:31] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-06-07 23:47:32,701 [INFO] 127.0.0.1 - - [07/Jun/2026 23:47:32] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-06-07 23:47:33,697 [INFO] 127.0.0.1 - - [07/Jun/2026 23:47:33] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-06-07 23:47:34,710 [INFO] 127.0.0.1 - - [07/Jun/2026 23:47:34] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-06-07 23:47:35,718 [INFO] 127.0.0.1 - - [07/Jun/2026 23:47:35] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-06-07 23:47:36,686 [INFO] 127.0.0.1 - - [07/Jun/2026 23:47:36] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-06-07 23:47:37,709 [INFO] 127.0.0.1 - - [07/Jun/2026 23:47:37] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-06-07 23:47:38,682 [INFO] 127.0.0.1 - - [07/Jun/2026 23:47:38] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-06-07 23:47:39,687 [INFO] 127.0.0.1 - - [07/Jun/2026 23:47:39] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-06-07 23:47:40,730 [INFO] 127.0.0.1 - - [07/Jun/2026 23:47:40] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-06-07 23:47:41,720 [INFO] 127.0.0.1 - - [07/Jun/2026 23:47:41] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-06-07 23:47:42,709 [INFO] 127.0.0.1 - - [07/Jun/2026 23:47:42] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-06-07 23:47:43,697 [INFO] 127.0.0.1 - - [07/Jun/2026 23:47:43] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-06-07 23:47:44,697 [INFO] 127.0.0.1 - - [07/Jun/2026 23:47:44] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-06-07 23:47:45,711 [INFO] 127.0.0.1 - - [07/Jun/2026 23:47:45] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-06-07 23:47:46,714 [INFO] 127.0.0.1 - - [07/Jun/2026 23:47:46] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-06-07 23:47:47,731 [INFO] 127.0.0.1 - - [07/Jun/2026 23:47:47] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-06-07 23:47:48,690 [INFO] 127.0.0.1 - - [07/Jun/2026 23:47:48] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-06-07 23:47:49,726 [INFO] 127.0.0.1 - - [07/Jun/2026 23:47:49] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-06-07 23:47:50,718 [INFO] 127.0.0.1 - - [07/Jun/2026 23:47:50] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-06-07 23:47:51,709 [INFO] 127.0.0.1 - - [07/Jun/2026 23:47:51] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-06-07 23:47:52,716 [INFO] 127.0.0.1 - - [07/Jun/2026 23:47:52] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-06-07 23:47:53,714 [INFO] 127.0.0.1 - - [07/Jun/2026 23:47:53] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-06-07 23:47:54,716 [INFO] 127.0.0.1 - - [07/Jun/2026 23:47:54] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-06-07 23:47:55,738 [INFO] 127.0.0.1 - - [07/Jun/2026 23:47:55] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-06-07 23:47:56,711 [INFO] 127.0.0.1 - - [07/Jun/2026 23:47:56] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-06-07 23:47:57,729 [INFO] 127.0.0.1 - - [07/Jun/2026 23:47:57] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-06-07 23:47:58,703 [INFO] 127.0.0.1 - - [07/Jun/2026 23:47:58] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-06-07 23:47:59,814 [INFO] 127.0.0.1 - - [07/Jun/2026 23:47:59] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-06-07 23:48:00,708 [INFO] 127.0.0.1 - - [07/Jun/2026 23:48:00] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-06-07 23:48:02,179 [INFO] 127.0.0.1 - - [07/Jun/2026 23:48:02] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-06-07 23:48:03,430 [INFO] 127.0.0.1 - - [07/Jun/2026 23:48:03] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-06-07 23:48:04,673 [INFO] 127.0.0.1 - - [07/Jun/2026 23:48:04] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-06-07 23:48:05,842 [INFO] 127.0.0.1 - - [07/Jun/2026 23:48:05] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-06-08 00:23:56,383 [INFO] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:7860
+ * Running on http://192.168.1.17:7860
+2026-06-08 00:23:56,383 [INFO] [33mPress CTRL+C to quit[0m
+2026-06-08 00:24:16,435 [INFO] 127.0.0.1 - - [08/Jun/2026 00:24:16] "GET /stream HTTP/1.1" 200 -
+2026-06-08 00:24:19,024 [INFO] 127.0.0.1 - - [08/Jun/2026 00:24:19] "GET / HTTP/1.1" 200 -
+2026-06-08 00:24:19,229 [INFO] 127.0.0.1 - - [08/Jun/2026 00:24:19] "GET /static/css/style.css HTTP/1.1" 200 -
+2026-06-08 00:24:19,240 [INFO] 127.0.0.1 - - [08/Jun/2026 00:24:19] "[36mGET /static/js/app.js HTTP/1.1[0m" 304 -
+2026-06-08 00:24:19,243 [INFO] 127.0.0.1 - - [08/Jun/2026 00:24:19] "[36mGET /static/manifest.json HTTP/1.1[0m" 304 -
+2026-06-08 00:24:19,396 [INFO] 127.0.0.1 - - [08/Jun/2026 00:24:19] "GET /api/potholes HTTP/1.1" 200 -
+2026-06-08 00:24:19,398 [INFO] 127.0.0.1 - - [08/Jun/2026 00:24:19] "GET /api/stats HTTP/1.1" 200 -
+2026-06-08 00:24:19,430 [ERROR] Error:
+Traceback (most recent call last):
+  File "C:\Users\juanr\AppData\Roaming\Python\Python311\site-packages\flask\app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\juanr\AppData\Roaming\Python\Python311\site-packages\flask\app.py", line 891, in dispatch_request
+    self.raise_routing_exception(req)
+  File "C:\Users\juanr\AppData\Roaming\Python\Python311\site-packages\flask\app.py", line 500, in raise_routing_exception
+    raise request.routing_exception  # type: ignore[misc]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\juanr\AppData\Roaming\Python\Python311\site-packages\flask\ctx.py", line 362, in match_request
+    result = self.url_adapter.match(return_rule=True)  # type: ignore
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\juanr\AppData\Roaming\Python\Python311\site-packages\werkzeug\routing\map.py", line 629, in match
+    raise NotFound() from None
+werkzeug.exceptions.NotFound: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+2026-06-08 00:24:19,442 [INFO] 127.0.0.1 - - [08/Jun/2026 00:24:19] "[35m[1mGET /favicon.ico HTTP/1.1[0m" 500 -
+2026-06-08 00:24:32,938 [INFO] Memulai pemuatan model YOLOv9 lokal...
+2026-06-08 00:24:34,086 [INFO] Memulai pemuatan model YOLOv9 lokal...
+2026-06-08 00:24:34,087 [INFO] Memulai pemuatan model YOLOv9 lokal...
+2026-06-08 00:24:34,925 [INFO] Memulai pemuatan model YOLOv9 lokal...
+2026-06-08 00:24:39,432 [INFO] 127.0.0.1 - - [08/Jun/2026 00:24:39] "GET /stream HTTP/1.1" 200 -
+2026-06-08 00:24:55,198 [INFO] YOLOv9 model loaded successfully.
+2026-06-08 00:24:55,202 [INFO] YOLOv9 model loaded successfully.
+2026-06-08 00:24:55,207 [INFO] YOLOv9 model loaded successfully.
+2026-06-08 00:24:55,207 [INFO] YOLOv9 model loaded successfully.
+2026-06-08 00:24:56,760 [INFO] 127.0.0.1 - - [08/Jun/2026 00:24:56] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-06-08 00:24:56,781 [INFO] 127.0.0.1 - - [08/Jun/2026 00:24:56] "GET /gallery HTTP/1.1" 200 -
+2026-06-08 00:24:56,868 [INFO] 127.0.0.1 - - [08/Jun/2026 00:24:56] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+2026-06-08 00:24:56,879 [INFO] 127.0.0.1 - - [08/Jun/2026 00:24:56] "GET /static/css/gallery.css HTTP/1.1" 200 -
+2026-06-08 00:24:56,882 [INFO] 127.0.0.1 - - [08/Jun/2026 00:24:56] "[36mGET /static/js/gallery.js HTTP/1.1[0m" 304 -
+2026-06-08 00:24:56,976 [INFO] 127.0.0.1 - - [08/Jun/2026 00:24:56] "GET /api/potholes HTTP/1.1" 200 -
+2026-06-08 00:24:56,979 [ERROR] Error:
+Traceback (most recent call last):
+  File "C:\Users\juanr\AppData\Roaming\Python\Python311\site-packages\flask\app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+         ^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\juanr\AppData\Roaming\Python\Python311\site-packages\flask\app.py", line 891, in dispatch_request
+    self.raise_routing_exception(req)
+  File "C:\Users\juanr\AppData\Roaming\Python\Python311\site-packages\flask\app.py", line 500, in raise_routing_exception
+    raise request.routing_exception  # type: ignore[misc]
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\juanr\AppData\Roaming\Python\Python311\site-packages\flask\ctx.py", line 362, in match_request
+    result = self.url_adapter.match(return_rule=True)  # type: ignore
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\juanr\AppData\Roaming\Python\Python311\site-packages\werkzeug\routing\map.py", line 629, in match
+    raise NotFound() from None
+werkzeug.exceptions.NotFound: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+2026-06-08 00:24:56,984 [INFO] 127.0.0.1 - - [08/Jun/2026 00:24:56] "[35m[1mGET /favicon.ico HTTP/1.1[0m" 500 -
+2026-06-08 00:24:58,256 [INFO] 127.0.0.1 - - [08/Jun/2026 00:24:58] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-06-08 00:24:59,453 [INFO] 127.0.0.1 - - [08/Jun/2026 00:24:59] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-06-08 00:25:00,717 [INFO] 127.0.0.1 - - [08/Jun/2026 00:25:00] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-06-08 00:25:01,905 [INFO] 127.0.0.1 - - [08/Jun/2026 00:25:01] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-06-08 00:25:03,501 [INFO] 127.0.0.1 - - [08/Jun/2026 00:25:03] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-06-08 00:25:05,061 [INFO] 127.0.0.1 - - [08/Jun/2026 00:25:05] "POST /api/detect-frame HTTP/1.1" 200 -

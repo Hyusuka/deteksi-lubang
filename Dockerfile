@@ -26,4 +26,4 @@ COPY --chown=user . .
 EXPOSE 7860
 
 # Perintah untuk menjalankan server Flask
-CMD ["python", "server.py"]
+CMD ["python", "run.py"]

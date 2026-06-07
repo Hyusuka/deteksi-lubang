@@ -6,7 +6,7 @@
 .gallery-body {
     overflow-y: auto !important;
     overflow-x: hidden;
-    background: linear-gradient(180deg, #0A0D12 0%, #0E1420 100%);
+    background: var(--bg);
     min-height: 100vh;
 }
 
@@ -20,9 +20,8 @@
     justify-content: space-between;
     padding: 12px 16px;
     padding-top: calc(env(safe-area-inset-top, 0px) + 12px);
-    background: rgba(10, 13, 18, 0.88);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
+    background: var(--bg);
+    border-bottom: 1px solid var(--border);
     border-bottom: 1px solid var(--border);
 }
 .nav-back {
@@ -43,10 +42,7 @@
     font-family: 'Outfit', sans-serif;
     font-size: 1rem;
     font-weight: 700;
-    background: linear-gradient(135deg, var(--cyan), var(--primary));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    color: var(--primary);
 }
 .nav-actions {
     display: flex; gap: 8px;
@@ -65,28 +61,26 @@
 
 /* ── Stats Overview ── */
 .gallery-stats {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 8px;
-    padding: 16px;
+    display: flex;
+    justify-content: space-between;
+    gap: 4px;
+    padding: 12px 16px;
 }
 .stat-card {
-    background: var(--bg3);
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    padding: 12px 8px;
+    background: transparent;
+    border: none;
+    padding: 0;
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 4px;
-    transition: transform 0.2s, box-shadow 0.2s;
+    gap: 2px;
+    flex: 1;
 }
 .stat-card:active {
     transform: scale(0.96);
 }
 .stat-icon {
-    font-size: 1.3rem;
-    line-height: 1;
+    display: none; /* Hide icon to save space */
 }
 .stat-info {
     display: flex;
@@ -95,10 +89,10 @@
 }
 .stat-number {
     font-family: 'Outfit', sans-serif;
-    font-size: 1.4rem;
+    font-size: 1.1rem;
     font-weight: 800;
-    color: var(--cyan);
-    line-height: 1.2;
+    color: var(--text);
+    line-height: 1;
 }
 .stat-high .stat-number { color: var(--danger); }
 .stat-medium .stat-number { color: var(--warn); }
@@ -143,10 +137,9 @@
     white-space: nowrap;
 }
 .chip.active {
-    background: linear-gradient(135deg, var(--primary), #0066CC);
+    background: var(--primary);
     color: #fff;
     border-color: transparent;
-    box-shadow: 0 2px 8px rgba(10, 132, 255, 0.35);
 }
 .chip:active { transform: scale(0.95); }
 .sort-select-wrapper {
