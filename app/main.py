@@ -31,6 +31,7 @@ os.makedirs(SNAPSHOT_DIR, exist_ok=True)
 # Local SQLite DB (Pengganti Supabase & MySQL)
 # ──────────────────────────────────────────────
 DB_PATH = os.path.join(os.path.dirname(__file__), '..', 'database', 'potholes.db')
+os.makedirs(os.path.dirname(DB_PATH), exist_ok=True)
 
 def get_db():
     conn = sqlite3.connect(DB_PATH)
