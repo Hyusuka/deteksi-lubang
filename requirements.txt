@@ -3,3 +3,4 @@ opencv-python-headless<4.10.0
 numpy<2.0.0
 python-dotenv>=1.0.0
 ultralytics>=8.4.0
+Flask-Cors

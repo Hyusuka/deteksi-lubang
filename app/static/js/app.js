@@ -348,6 +348,10 @@ function startDetectionLoop() {
                     det.y1 *= scaleFactor;
                     det.x2 *= scaleFactor;
                     det.y2 *= scaleFactor;
+                    // Skala koordinat poligon segmentasi ke ukuran layar asli
+                    if (det.segmentation) {
+                        det.segmentation = det.segmentation.map(p => [p[0] * scaleFactor, p[1] * scaleFactor]);
+                    }
                 });
             }
 
@@ -385,7 +389,7 @@ function stopDetectionLoop() {
 }
 
 // ═══════════════════════════════════════════════
-// 4. DRAW BOUNDING BOXES on canvas overlay
+// 4. DRAW SEGMENTATION MASKS + BOUNDING BOXES on canvas overlay
 // ═══════════════════════════════════════════════
 function drawDetections(detections, vw, vh) {
     const overlay = document.getElementById('camera-overlay');
@@ -397,13 +401,39 @@ function drawDetections(detections, vw, vh) {
     if (!detections || detections.length === 0) return;
 
     detections.forEach(det => {
-        const { x1, y1, x2, y2, confidence, class: cls } = det;
+        const { x1, y1, x2, y2, confidence, class: cls, segmentation } = det;
         const w = x2 - x1, h = y2 - y1;
 
         let color = '#34C759';
-        if (confidence > 0.7) color = '#FF3B30';
-        else if (confidence > 0.4) color = '#FF9F0A';
+        let rgbColor = '52, 199, 89';
+        if (confidence > 0.7) { color = '#FF3B30'; rgbColor = '255, 59, 48'; }
+        else if (confidence > 0.4) { color = '#FF9F0A'; rgbColor = '255, 159, 10'; }
 
+        // Gambar poligon segmentasi (filled semi-transparan + outline) di dalam bounding box
+        if (segmentation && segmentation.length >= 3) {
+            // Fill semi-transparan
+            ctx.fillStyle = `rgba(${rgbColor}, 0.3)`;
+            ctx.beginPath();
+            ctx.moveTo(segmentation[0][0], segmentation[0][1]);
+            for (let i = 1; i < segmentation.length; i++) {
+                ctx.lineTo(segmentation[i][0], segmentation[i][1]);
+            }
+            ctx.closePath();
+            ctx.fill();
+
+            // Garis kontur (outline) di sekeliling mask
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 2;
+            ctx.beginPath();
+            ctx.moveTo(segmentation[0][0], segmentation[0][1]);
+            for (let i = 1; i < segmentation.length; i++) {
+                ctx.lineTo(segmentation[i][0], segmentation[i][1]);
+            }
+            ctx.closePath();
+            ctx.stroke();
+        }
+
+        // Bounding box rectangle
         ctx.strokeStyle = color;
         ctx.lineWidth = 3;
         ctx.strokeRect(x1, y1, w, h);

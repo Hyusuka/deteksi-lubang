@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="description" content="Uji Deteksi Lubang Jalan — Upload gambar atau video untuk dianalisis oleh model YOLOv9">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Uji Deteksi — Pothole Scanner</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <meta name="theme-color" content="#F8FAFC">
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="/static/css/test.css">
+</head>
+<body class="test-body">
+
+    <!-- ═══════════ TOP NAV BAR ═══════════ -->
+    <nav class="test-nav">
+        <a href="/" class="nav-back">
+            <span class="nav-back-icon">←</span>
+            <span>Kembali</span>
+        </a>
+        <h1 class="nav-title">🧪 Uji Deteksi</h1>
+        <div style="width: 70px;"></div>
+    </nav>
+
+    <!-- ═══════════ TAB SWITCHER ═══════════ -->
+    <div class="tab-switcher">
+        <button class="tab-btn active" data-tab="image">
+            <span class="tab-icon">🖼️</span>
+            <span>Gambar</span>
+        </button>
+        <button class="tab-btn" data-tab="video">
+            <span class="tab-icon">🎬</span>
+            <span>Video</span>
+        </button>
+    </div>
+
+    <!-- ═════════════════════════════════════════════
+         TAB 1: IMAGE DETECTION
+         ═════════════════════════════════════════════ -->
+    <div class="tab-content active" id="tab-image">
+
+        <!-- Drop Zone -->
+        <div class="drop-zone" id="image-drop-zone">
+            <span class="drop-zone-icon">🖼️</span>
+            <div class="drop-zone-title">Upload Gambar Jalan</div>
+            <div class="drop-zone-sub">Seret & lepas gambar di sini, atau klik untuk memilih</div>
+            <button class="drop-zone-btn">📂 Pilih File Gambar</button>
+            <input type="file" id="image-file-input" accept="image/jpeg,image/png,image/webp,image/bmp">
+        </div>
+
+        <!-- Preview -->
+        <div class="preview-section" id="image-preview">
+            <div class="preview-card">
+                <div class="preview-header">
+                    <h3>📋 Preview Gambar</h3>
+                    <span class="preview-file-info" id="image-file-info">--</span>
+                </div>
+                <img class="preview-media" id="image-preview-img" src="" alt="Preview gambar">
+                <div class="confidence-control">
+                    <label>Sensitivitas Deteksi: <strong id="img-conf-val">15%</strong></label>
+                    <input type="range" id="img-confidence" min="5" max="80" value="15" step="5" oninput="document.getElementById('img-conf-val').textContent=this.value+'%'">
+                    <div class="conf-hints"><span>← Lebih sensitif</span><span>Lebih ketat →</span></div>
+                </div>
+                <div class="preview-actions">
+                    <button class="btn-detect" id="btn-detect-image" onclick="detectImage()">
+                        🔍 Mulai Deteksi
+                    </button>
+                    <button class="btn-clear" onclick="clearImage()">✕</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Processing -->
+        <div class="processing-overlay" id="image-processing">
+            <div class="processing-spinner"></div>
+            <div class="processing-text">Menganalisis Gambar...</div>
+            <div class="processing-sub">Model YOLOv9 sedang memproses deteksi lubang jalan</div>
+        </div>
+
+        <!-- Result -->
+        <div class="result-section" id="image-result">
+
+            <!-- Summary Cards -->
+            <div class="result-summary">
+                <div class="summary-card">
+                    <div class="summary-num primary" id="img-stat-total">0</div>
+                    <div class="summary-label">Terdeteksi</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-num danger" id="img-stat-high">0</div>
+                    <div class="summary-label">Bahaya</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-num warn" id="img-stat-medium">0</div>
+                    <div class="summary-label">Sedang</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-num success" id="img-stat-time">--</div>
+                    <div class="summary-label">Waktu</div>
+                </div>
+            </div>
+
+            <!-- Result Image -->
+            <div class="result-image-card">
+                <div class="result-image-header">
+                    <h3>🎯 Hasil Deteksi</h3>
+                    <div style="display:flex; gap:8px; align-items:center;">
+                        <span class="result-badge blue" id="result-image-size">--</span>
+                        <button class="btn-download" onclick="downloadResultImage()">💾 Simpan</button>
+                    </div>
+                </div>
+                <div class="result-image-wrapper">
+                    <img id="result-image-display" src="" alt="Hasil deteksi">
+                </div>
+            </div>
+
+            <!-- Detection Table -->
+            <div class="detection-table-card" id="image-det-table-card" style="display:none;">
+                <div class="detection-table-header">
+                    <h3>📊 Detail Deteksi</h3>
+                </div>
+                <div class="detection-table-wrap">
+                    <table class="det-table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Kelas</th>
+                                <th>Severity</th>
+                                <th>Confidence</th>
+                                <th>Diameter</th>
+                                <th>Kedalaman</th>
+                                <th>Volume</th>
+                            </tr>
+                        </thead>
+                        <tbody id="image-det-tbody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- No Detection -->
+            <div class="no-detection" id="image-no-detection" style="display:none;">
+                <div class="no-detection-icon">✅</div>
+                <h3>Tidak Ada Lubang Terdeteksi</h3>
+                <p>Model YOLOv9 tidak menemukan lubang jalan pada gambar ini.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═════════════════════════════════════════════
+         TAB 2: VIDEO DETECTION
+         ═════════════════════════════════════════════ -->
+    <div class="tab-content" id="tab-video">
+
+        <!-- Drop Zone -->
+        <div class="drop-zone" id="video-drop-zone">
+            <span class="drop-zone-icon">🎬</span>
+            <div class="drop-zone-title">Upload Video Jalan</div>
+            <div class="drop-zone-sub">Seret & lepas video di sini, atau klik untuk memilih</div>
+            <button class="drop-zone-btn">📂 Pilih File Video</button>
+            <input type="file" id="video-file-input" accept="video/mp4,video/avi,video/quicktime,video/x-msvideo,video/webm">
+        </div>
+
+        <!-- Preview -->
+        <div class="preview-section" id="video-preview">
+            <div class="preview-card">
+                <div class="preview-header">
+                    <h3>📋 Preview Video</h3>
+                    <span class="preview-file-info" id="video-file-info">--</span>
+                </div>
+                <video class="preview-media" id="video-preview-vid" controls muted></video>
+                <div class="confidence-control">
+                    <label>Sensitivitas Deteksi: <strong id="vid-conf-val">15%</strong></label>
+                    <input type="range" id="vid-confidence" min="5" max="80" value="15" step="5" oninput="document.getElementById('vid-conf-val').textContent=this.value+'%'">
+                    <div class="conf-hints"><span>← Lebih sensitif</span><span>Lebih ketat →</span></div>
+                </div>
+                <div class="preview-actions">
+                    <button class="btn-detect" id="btn-detect-video" onclick="detectVideo()">
+                        🔍 Mulai Deteksi
+                    </button>
+                    <button class="btn-clear" onclick="clearVideo()">✕</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Progress Bar -->
+        <div class="progress-wrapper" id="video-progress">
+            <div class="progress-card">
+                <div class="progress-header">
+                    <span class="progress-title">⏳ Memproses Video...</span>
+                    <span class="progress-percent" id="progress-percent-text">0%</span>
+                </div>
+                <div class="progress-bar-track">
+                    <div class="progress-bar-fill" id="progress-fill"></div>
+                </div>
+                <div class="progress-detail" id="progress-detail-text">Menginisialisasi...</div>
+            </div>
+        </div>
+
+        <!-- Result -->
+        <div class="result-section" id="video-result">
+
+            <!-- Summary Cards -->
+            <div class="result-summary">
+                <div class="summary-card">
+                    <div class="summary-num primary" id="vid-stat-total">0</div>
+                    <div class="summary-label">Terdeteksi</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-num danger" id="vid-stat-high">0</div>
+                    <div class="summary-label">Bahaya</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-num warn" id="vid-stat-medium">0</div>
+                    <div class="summary-label">Sedang</div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-num success" id="vid-stat-low">0</div>
+                    <div class="summary-label">Rendah</div>
+                </div>
+            </div>
+
+            <!-- Result Video -->
+            <div class="result-image-card">
+                <div class="result-image-header">
+                    <h3>🎬 Video Hasil Deteksi</h3>
+                    <a class="btn-download" id="video-download-link" href="#" download>💾 Download</a>
+                </div>
+                <div class="result-image-wrapper">
+                    <video id="result-video-display" controls style="width:100%;max-height:500px;object-fit:contain;"></video>
+                </div>
+            </div>
+
+            <!-- Detection Table -->
+            <div class="detection-table-card" id="video-det-table-card" style="display:none;">
+                <div class="detection-table-header">
+                    <h3>📊 Detail Deteksi per Frame</h3>
+                </div>
+                <div class="detection-table-wrap">
+                    <table class="det-table">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>Waktu</th>
+                                <th>Kelas</th>
+                                <th>Severity</th>
+                                <th>Confidence</th>
+                                <th>Diameter</th>
+                                <th>Kedalaman</th>
+                            </tr>
+                        </thead>
+                        <tbody id="video-det-tbody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- No Detection -->
+            <div class="no-detection" id="video-no-detection" style="display:none;">
+                <div class="no-detection-icon">✅</div>
+                <h3>Tidak Ada Lubang Terdeteksi</h3>
+                <p>Model YOLOv9 tidak menemukan lubang jalan pada video ini.</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════ FOOTER ═══════════ -->
+    <div class="test-footer">
+        YOLOv9 Pothole Detection System · Upload Gambar atau Video untuk Pengujian
+    </div>
+
+    <script src="/static/js/test.js"></script>
+</body>
+</html>

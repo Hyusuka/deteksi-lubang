@@ -292,3 +292,1199 @@ werkzeug.exceptions.NotFound: 404 Not Found: The requested URL was not found on 
 2026-06-08 00:25:01,905 [INFO] 127.0.0.1 - - [08/Jun/2026 00:25:01] "POST /api/detect-frame HTTP/1.1" 200 -
 2026-06-08 00:25:03,501 [INFO] 127.0.0.1 - - [08/Jun/2026 00:25:03] "POST /api/detect-frame HTTP/1.1" 200 -
 2026-06-08 00:25:05,061 [INFO] 127.0.0.1 - - [08/Jun/2026 00:25:05] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:06:42,400 [INFO] [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:7860
+ * Running on http://192.168.1.23:7860
+2026-08-14 18:06:42,400 [INFO] [33mPress CTRL+C to quit[0m
+2026-08-14 18:06:52,942 [INFO] 127.0.0.1 - - [14/Aug/2026 18:06:52] "GET / HTTP/1.1" 200 -
+2026-08-14 18:06:53,062 [INFO] 127.0.0.1 - - [14/Aug/2026 18:06:53] "GET /static/css/style.css HTTP/1.1" 200 -
+2026-08-14 18:06:53,083 [INFO] 127.0.0.1 - - [14/Aug/2026 18:06:53] "GET /static/manifest.json HTTP/1.1" 200 -
+2026-08-14 18:06:53,102 [INFO] 127.0.0.1 - - [14/Aug/2026 18:06:53] "GET /static/js/app.js HTTP/1.1" 200 -
+2026-08-14 18:06:53,320 [INFO] 127.0.0.1 - - [14/Aug/2026 18:06:53] "GET /api/potholes HTTP/1.1" 200 -
+2026-08-14 18:06:53,321 [INFO] 127.0.0.1 - - [14/Aug/2026 18:06:53] "GET /api/stats HTTP/1.1" 200 -
+2026-08-14 18:06:53,348 [INFO] 127.0.0.1 - - [14/Aug/2026 18:06:53] "GET /static/sw.js HTTP/1.1" 200 -
+2026-08-14 18:06:53,645 [ERROR] Error:
+Traceback (most recent call last):
+  File "C:\Users\User\AppData\Local\Programs\Python\Python310\lib\site-packages\flask\app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "C:\Users\User\AppData\Local\Programs\Python\Python310\lib\site-packages\flask\app.py", line 891, in dispatch_request
+    self.raise_routing_exception(req)
+  File "C:\Users\User\AppData\Local\Programs\Python\Python310\lib\site-packages\flask\app.py", line 500, in raise_routing_exception
+    raise request.routing_exception  # type: ignore[misc]
+  File "C:\Users\User\AppData\Local\Programs\Python\Python310\lib\site-packages\flask\ctx.py", line 362, in match_request
+    result = self.url_adapter.match(return_rule=True)  # type: ignore
+  File "C:\Users\User\AppData\Local\Programs\Python\Python310\lib\site-packages\werkzeug\routing\map.py", line 629, in match
+    raise NotFound() from None
+werkzeug.exceptions.NotFound: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+2026-08-14 18:06:53,665 [INFO] 127.0.0.1 - - [14/Aug/2026 18:06:53] "[35m[1mGET /favicon.ico HTTP/1.1[0m" 500 -
+2026-08-14 18:07:13,338 [INFO] 127.0.0.1 - - [14/Aug/2026 18:07:13] "GET /stream HTTP/1.1" 200 -
+2026-08-14 18:16:54,163 [INFO] Memulai pemuatan model YOLOv9 lokal...
+2026-08-14 18:16:54,164 [INFO] Memulai pemuatan model YOLOv9 lokal...
+2026-08-14 18:16:55,240 [INFO] Memulai pemuatan model YOLOv9 lokal...
+2026-08-14 18:16:55,565 [INFO] Memulai pemuatan model YOLOv9 lokal...
+2026-08-14 18:16:56,363 [INFO] Memulai pemuatan model YOLOv9 lokal...
+2026-08-14 18:17:13,212 [INFO] YOLOv9 model loaded successfully.
+2026-08-14 18:17:13,428 [INFO] YOLOv9 model loaded successfully.
+2026-08-14 18:17:13,455 [INFO] YOLOv9 model loaded successfully.
+2026-08-14 18:17:14,406 [INFO] YOLOv9 model loaded successfully.
+2026-08-14 18:17:14,458 [INFO] YOLOv9 model loaded successfully.
+2026-08-14 18:17:16,014 [INFO] 127.0.0.1 - - [14/Aug/2026 18:17:16] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:17:16,068 [INFO] 127.0.0.1 - - [14/Aug/2026 18:17:16] "GET /gallery HTTP/1.1" 200 -
+2026-08-14 18:17:16,180 [INFO] 127.0.0.1 - - [14/Aug/2026 18:17:16] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+2026-08-14 18:17:16,198 [INFO] 127.0.0.1 - - [14/Aug/2026 18:17:16] "GET /static/css/gallery.css HTTP/1.1" 200 -
+2026-08-14 18:17:16,303 [INFO] 127.0.0.1 - - [14/Aug/2026 18:17:16] "GET /static/js/gallery.js HTTP/1.1" 200 -
+2026-08-14 18:17:16,582 [INFO] 127.0.0.1 - - [14/Aug/2026 18:17:16] "GET /api/potholes HTTP/1.1" 200 -
+2026-08-14 18:17:17,282 [ERROR] Error:
+Traceback (most recent call last):
+  File "C:\Users\User\AppData\Local\Programs\Python\Python310\lib\site-packages\flask\app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "C:\Users\User\AppData\Local\Programs\Python\Python310\lib\site-packages\flask\app.py", line 891, in dispatch_request
+    self.raise_routing_exception(req)
+  File "C:\Users\User\AppData\Local\Programs\Python\Python310\lib\site-packages\flask\app.py", line 500, in raise_routing_exception
+    raise request.routing_exception  # type: ignore[misc]
+  File "C:\Users\User\AppData\Local\Programs\Python\Python310\lib\site-packages\flask\ctx.py", line 362, in match_request
+    result = self.url_adapter.match(return_rule=True)  # type: ignore
+  File "C:\Users\User\AppData\Local\Programs\Python\Python310\lib\site-packages\werkzeug\routing\map.py", line 629, in match
+    raise NotFound() from None
+werkzeug.exceptions.NotFound: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+2026-08-14 18:17:17,290 [INFO] 127.0.0.1 - - [14/Aug/2026 18:17:17] "[35m[1mGET /favicon.ico HTTP/1.1[0m" 500 -
+2026-08-14 18:17:18,014 [INFO] 127.0.0.1 - - [14/Aug/2026 18:17:18] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:17:19,326 [INFO] 127.0.0.1 - - [14/Aug/2026 18:17:19] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:17:20,473 [INFO] 127.0.0.1 - - [14/Aug/2026 18:17:20] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:17:21,521 [INFO] 127.0.0.1 - - [14/Aug/2026 18:17:21] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:17:22,607 [INFO] 127.0.0.1 - - [14/Aug/2026 18:17:22] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:17:23,663 [INFO] 127.0.0.1 - - [14/Aug/2026 18:17:23] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:17:24,682 [INFO] 127.0.0.1 - - [14/Aug/2026 18:17:24] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:17:25,628 [INFO] 127.0.0.1 - - [14/Aug/2026 18:17:25] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:17:38,527 [INFO] 127.0.0.1 - - [14/Aug/2026 18:17:38] "GET / HTTP/1.1" 200 -
+2026-08-14 18:17:38,559 [INFO] 127.0.0.1 - - [14/Aug/2026 18:17:38] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+2026-08-14 18:17:38,569 [INFO] 127.0.0.1 - - [14/Aug/2026 18:17:38] "[36mGET /static/js/app.js HTTP/1.1[0m" 304 -
+2026-08-14 18:17:38,572 [INFO] 127.0.0.1 - - [14/Aug/2026 18:17:38] "[36mGET /static/manifest.json HTTP/1.1[0m" 304 -
+2026-08-14 18:17:38,652 [INFO] 127.0.0.1 - - [14/Aug/2026 18:17:38] "GET /api/potholes HTTP/1.1" 200 -
+2026-08-14 18:17:38,654 [INFO] 127.0.0.1 - - [14/Aug/2026 18:17:38] "GET /api/stats HTTP/1.1" 200 -
+2026-08-14 18:17:38,818 [ERROR] Error:
+Traceback (most recent call last):
+  File "C:\Users\User\AppData\Local\Programs\Python\Python310\lib\site-packages\flask\app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "C:\Users\User\AppData\Local\Programs\Python\Python310\lib\site-packages\flask\app.py", line 891, in dispatch_request
+    self.raise_routing_exception(req)
+  File "C:\Users\User\AppData\Local\Programs\Python\Python310\lib\site-packages\flask\app.py", line 500, in raise_routing_exception
+    raise request.routing_exception  # type: ignore[misc]
+  File "C:\Users\User\AppData\Local\Programs\Python\Python310\lib\site-packages\flask\ctx.py", line 362, in match_request
+    result = self.url_adapter.match(return_rule=True)  # type: ignore
+  File "C:\Users\User\AppData\Local\Programs\Python\Python310\lib\site-packages\werkzeug\routing\map.py", line 629, in match
+    raise NotFound() from None
+werkzeug.exceptions.NotFound: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+2026-08-14 18:17:38,822 [INFO] 127.0.0.1 - - [14/Aug/2026 18:17:38] "[35m[1mGET /favicon.ico HTTP/1.1[0m" 500 -
+2026-08-14 18:17:47,840 [INFO] 127.0.0.1 - - [14/Aug/2026 18:17:47] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:17:48,636 [INFO] 127.0.0.1 - - [14/Aug/2026 18:17:48] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:17:49,434 [INFO] 127.0.0.1 - - [14/Aug/2026 18:17:49] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:17:50,250 [INFO] 127.0.0.1 - - [14/Aug/2026 18:17:50] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:17:51,520 [INFO] 127.0.0.1 - - [14/Aug/2026 18:17:51] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:17:52,693 [INFO] 127.0.0.1 - - [14/Aug/2026 18:17:52] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:17:53,872 [INFO] 127.0.0.1 - - [14/Aug/2026 18:17:53] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:17:55,005 [INFO] 127.0.0.1 - - [14/Aug/2026 18:17:55] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:17:56,244 [INFO] 127.0.0.1 - - [14/Aug/2026 18:17:56] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:17:57,472 [INFO] 127.0.0.1 - - [14/Aug/2026 18:17:57] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:17:58,653 [INFO] 127.0.0.1 - - [14/Aug/2026 18:17:58] "GET /stream HTTP/1.1" 200 -
+2026-08-14 18:17:58,712 [INFO] 127.0.0.1 - - [14/Aug/2026 18:17:58] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:17:59,789 [INFO] 127.0.0.1 - - [14/Aug/2026 18:17:59] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:18:00,895 [INFO] 127.0.0.1 - - [14/Aug/2026 18:18:00] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:18:01,969 [INFO] 127.0.0.1 - - [14/Aug/2026 18:18:01] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:18:03,040 [INFO] 127.0.0.1 - - [14/Aug/2026 18:18:03] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:18:04,248 [INFO] 127.0.0.1 - - [14/Aug/2026 18:18:04] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:18:05,485 [INFO] 127.0.0.1 - - [14/Aug/2026 18:18:05] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:18:06,786 [INFO] 127.0.0.1 - - [14/Aug/2026 18:18:06] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:18:07,919 [INFO] 127.0.0.1 - - [14/Aug/2026 18:18:07] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:18:08,963 [INFO] 127.0.0.1 - - [14/Aug/2026 18:18:08] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:18:10,020 [INFO] 127.0.0.1 - - [14/Aug/2026 18:18:10] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:18:11,270 [INFO] 127.0.0.1 - - [14/Aug/2026 18:18:11] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:18:12,297 [INFO] 127.0.0.1 - - [14/Aug/2026 18:18:12] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:18:13,328 [INFO] 127.0.0.1 - - [14/Aug/2026 18:18:13] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:18:14,374 [INFO] 127.0.0.1 - - [14/Aug/2026 18:18:14] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:18:15,508 [INFO] 127.0.0.1 - - [14/Aug/2026 18:18:15] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:18:16,663 [INFO] 127.0.0.1 - - [14/Aug/2026 18:18:16] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:18:17,860 [INFO] 127.0.0.1 - - [14/Aug/2026 18:18:17] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:18:18,913 [INFO] 127.0.0.1 - - [14/Aug/2026 18:18:18] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:18:20,036 [INFO] 127.0.0.1 - - [14/Aug/2026 18:18:20] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:18:21,170 [INFO] 127.0.0.1 - - [14/Aug/2026 18:18:21] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:18:22,232 [INFO] 127.0.0.1 - - [14/Aug/2026 18:18:22] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:18:23,261 [INFO] 127.0.0.1 - - [14/Aug/2026 18:18:23] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:18:24,325 [INFO] 127.0.0.1 - - [14/Aug/2026 18:18:24] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:18:25,331 [INFO] 127.0.0.1 - - [14/Aug/2026 18:18:25] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:18:26,388 [INFO] 127.0.0.1 - - [14/Aug/2026 18:18:26] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:18:27,430 [INFO] 127.0.0.1 - - [14/Aug/2026 18:18:27] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:18:28,473 [INFO] 127.0.0.1 - - [14/Aug/2026 18:18:28] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:18:29,511 [INFO] 127.0.0.1 - - [14/Aug/2026 18:18:29] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:18:30,715 [INFO] 127.0.0.1 - - [14/Aug/2026 18:18:30] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:18:31,758 [INFO] 127.0.0.1 - - [14/Aug/2026 18:18:31] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:18:32,990 [INFO] 127.0.0.1 - - [14/Aug/2026 18:18:32] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:18:34,138 [INFO] 127.0.0.1 - - [14/Aug/2026 18:18:34] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:18:35,306 [INFO] 127.0.0.1 - - [14/Aug/2026 18:18:35] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:18:36,398 [INFO] 127.0.0.1 - - [14/Aug/2026 18:18:36] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:18:37,453 [INFO] 127.0.0.1 - - [14/Aug/2026 18:18:37] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:18:38,559 [INFO] 127.0.0.1 - - [14/Aug/2026 18:18:38] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:18:39,600 [INFO] 127.0.0.1 - - [14/Aug/2026 18:18:39] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:18:40,672 [INFO] 127.0.0.1 - - [14/Aug/2026 18:18:40] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:18:41,736 [INFO] 127.0.0.1 - - [14/Aug/2026 18:18:41] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:18:42,787 [INFO] 127.0.0.1 - - [14/Aug/2026 18:18:42] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:18:43,839 [INFO] 127.0.0.1 - - [14/Aug/2026 18:18:43] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:18:44,885 [INFO] 127.0.0.1 - - [14/Aug/2026 18:18:44] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:18:45,902 [INFO] 127.0.0.1 - - [14/Aug/2026 18:18:45] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:18:46,949 [INFO] 127.0.0.1 - - [14/Aug/2026 18:18:46] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:18:47,999 [INFO] 127.0.0.1 - - [14/Aug/2026 18:18:47] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:18:49,041 [INFO] 127.0.0.1 - - [14/Aug/2026 18:18:49] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:18:50,100 [INFO] 127.0.0.1 - - [14/Aug/2026 18:18:50] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:18:51,325 [INFO] 127.0.0.1 - - [14/Aug/2026 18:18:51] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:18:52,452 [INFO] 127.0.0.1 - - [14/Aug/2026 18:18:52] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:18:53,593 [INFO] 127.0.0.1 - - [14/Aug/2026 18:18:53] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:18:54,732 [INFO] 127.0.0.1 - - [14/Aug/2026 18:18:54] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:18:55,790 [INFO] 127.0.0.1 - - [14/Aug/2026 18:18:55] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:18:56,836 [INFO] 127.0.0.1 - - [14/Aug/2026 18:18:56] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:18:57,887 [INFO] 127.0.0.1 - - [14/Aug/2026 18:18:57] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:18:58,947 [INFO] 127.0.0.1 - - [14/Aug/2026 18:18:58] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:19:00,008 [INFO] 127.0.0.1 - - [14/Aug/2026 18:19:00] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:19:01,069 [INFO] 127.0.0.1 - - [14/Aug/2026 18:19:01] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:19:02,087 [INFO] 127.0.0.1 - - [14/Aug/2026 18:19:02] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:19:03,140 [INFO] 127.0.0.1 - - [14/Aug/2026 18:19:03] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:19:04,187 [INFO] 127.0.0.1 - - [14/Aug/2026 18:19:04] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:19:05,224 [INFO] 127.0.0.1 - - [14/Aug/2026 18:19:05] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:19:06,282 [INFO] 127.0.0.1 - - [14/Aug/2026 18:19:06] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:19:07,357 [INFO] 127.0.0.1 - - [14/Aug/2026 18:19:07] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:19:08,347 [INFO] 127.0.0.1 - - [14/Aug/2026 18:19:08] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:19:09,437 [INFO] 127.0.0.1 - - [14/Aug/2026 18:19:09] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:19:10,510 [INFO] 127.0.0.1 - - [14/Aug/2026 18:19:10] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:19:11,617 [INFO] 127.0.0.1 - - [14/Aug/2026 18:19:11] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:19:12,780 [INFO] 127.0.0.1 - - [14/Aug/2026 18:19:12] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:19:14,039 [INFO] 127.0.0.1 - - [14/Aug/2026 18:19:14] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:19:15,074 [INFO] 127.0.0.1 - - [14/Aug/2026 18:19:15] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:19:16,126 [INFO] 127.0.0.1 - - [14/Aug/2026 18:19:16] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:19:17,157 [INFO] 127.0.0.1 - - [14/Aug/2026 18:19:17] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:19:18,193 [INFO] 127.0.0.1 - - [14/Aug/2026 18:19:18] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:19:19,207 [INFO] 127.0.0.1 - - [14/Aug/2026 18:19:19] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:19:20,236 [INFO] 127.0.0.1 - - [14/Aug/2026 18:19:20] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:19:21,250 [INFO] 127.0.0.1 - - [14/Aug/2026 18:19:21] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:19:22,316 [INFO] 127.0.0.1 - - [14/Aug/2026 18:19:22] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:19:23,378 [INFO] 127.0.0.1 - - [14/Aug/2026 18:19:23] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:19:24,373 [INFO] 127.0.0.1 - - [14/Aug/2026 18:19:24] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:19:25,415 [INFO] 127.0.0.1 - - [14/Aug/2026 18:19:25] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:19:26,466 [INFO] 127.0.0.1 - - [14/Aug/2026 18:19:26] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:19:27,470 [INFO] 127.0.0.1 - - [14/Aug/2026 18:19:27] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:19:28,519 [INFO] 127.0.0.1 - - [14/Aug/2026 18:19:28] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:19:29,652 [INFO] 127.0.0.1 - - [14/Aug/2026 18:19:29] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:19:30,824 [INFO] 127.0.0.1 - - [14/Aug/2026 18:19:30] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:19:32,013 [INFO] 127.0.0.1 - - [14/Aug/2026 18:19:32] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:19:33,265 [INFO] 127.0.0.1 - - [14/Aug/2026 18:19:33] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:19:34,318 [INFO] 127.0.0.1 - - [14/Aug/2026 18:19:34] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:19:35,377 [INFO] 127.0.0.1 - - [14/Aug/2026 18:19:35] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:19:36,424 [INFO] 127.0.0.1 - - [14/Aug/2026 18:19:36] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:19:37,579 [INFO] 127.0.0.1 - - [14/Aug/2026 18:19:37] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:19:38,611 [INFO] 127.0.0.1 - - [14/Aug/2026 18:19:38] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:19:39,644 [INFO] 127.0.0.1 - - [14/Aug/2026 18:19:39] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:19:40,704 [INFO] 127.0.0.1 - - [14/Aug/2026 18:19:40] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:19:41,761 [INFO] 127.0.0.1 - - [14/Aug/2026 18:19:41] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:19:42,823 [INFO] 127.0.0.1 - - [14/Aug/2026 18:19:42] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:19:43,857 [INFO] 127.0.0.1 - - [14/Aug/2026 18:19:43] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:19:44,908 [INFO] 127.0.0.1 - - [14/Aug/2026 18:19:44] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:19:45,943 [INFO] 127.0.0.1 - - [14/Aug/2026 18:19:45] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:19:46,959 [INFO] 127.0.0.1 - - [14/Aug/2026 18:19:46] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:19:48,001 [INFO] 127.0.0.1 - - [14/Aug/2026 18:19:48] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:19:49,222 [INFO] 127.0.0.1 - - [14/Aug/2026 18:19:49] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:19:50,347 [INFO] 127.0.0.1 - - [14/Aug/2026 18:19:50] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:19:51,559 [INFO] 127.0.0.1 - - [14/Aug/2026 18:19:51] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:19:52,806 [INFO] 127.0.0.1 - - [14/Aug/2026 18:19:52] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:19:52,816 [INFO] 127.0.0.1 - - [14/Aug/2026 18:19:52] "GET /gallery HTTP/1.1" 200 -
+2026-08-14 18:19:52,938 [INFO] 127.0.0.1 - - [14/Aug/2026 18:19:52] "[36mGET /static/css/style.css HTTP/1.1[0m" 304 -
+2026-08-14 18:19:52,940 [INFO] 127.0.0.1 - - [14/Aug/2026 18:19:52] "[36mGET /static/js/gallery.js HTTP/1.1[0m" 304 -
+2026-08-14 18:19:52,945 [INFO] 127.0.0.1 - - [14/Aug/2026 18:19:52] "[36mGET /static/css/gallery.css HTTP/1.1[0m" 304 -
+2026-08-14 18:19:53,031 [INFO] 127.0.0.1 - - [14/Aug/2026 18:19:53] "GET /api/potholes HTTP/1.1" 200 -
+2026-08-14 18:19:53,111 [ERROR] Error:
+Traceback (most recent call last):
+  File "C:\Users\User\AppData\Local\Programs\Python\Python310\lib\site-packages\flask\app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "C:\Users\User\AppData\Local\Programs\Python\Python310\lib\site-packages\flask\app.py", line 891, in dispatch_request
+    self.raise_routing_exception(req)
+  File "C:\Users\User\AppData\Local\Programs\Python\Python310\lib\site-packages\flask\app.py", line 500, in raise_routing_exception
+    raise request.routing_exception  # type: ignore[misc]
+  File "C:\Users\User\AppData\Local\Programs\Python\Python310\lib\site-packages\flask\ctx.py", line 362, in match_request
+    result = self.url_adapter.match(return_rule=True)  # type: ignore
+  File "C:\Users\User\AppData\Local\Programs\Python\Python310\lib\site-packages\werkzeug\routing\map.py", line 629, in match
+    raise NotFound() from None
+werkzeug.exceptions.NotFound: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+2026-08-14 18:19:53,117 [INFO] 127.0.0.1 - - [14/Aug/2026 18:19:53] "[35m[1mGET /favicon.ico HTTP/1.1[0m" 500 -
+2026-08-14 18:19:54,206 [INFO] 127.0.0.1 - - [14/Aug/2026 18:19:54] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:19:55,240 [INFO] 127.0.0.1 - - [14/Aug/2026 18:19:55] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:19:56,124 [INFO] 127.0.0.1 - - [14/Aug/2026 18:19:56] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:19:57,081 [INFO] 127.0.0.1 - - [14/Aug/2026 18:19:57] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:19:58,073 [INFO] 127.0.0.1 - - [14/Aug/2026 18:19:58] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:19:59,164 [INFO] 127.0.0.1 - - [14/Aug/2026 18:19:59] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:20:00,061 [INFO] 127.0.0.1 - - [14/Aug/2026 18:20:00] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:20:01,026 [INFO] 127.0.0.1 - - [14/Aug/2026 18:20:01] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:20:01,985 [INFO] 127.0.0.1 - - [14/Aug/2026 18:20:01] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:20:02,967 [INFO] 127.0.0.1 - - [14/Aug/2026 18:20:02] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:20:03,874 [INFO] 127.0.0.1 - - [14/Aug/2026 18:20:03] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:20:04,806 [INFO] 127.0.0.1 - - [14/Aug/2026 18:20:04] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-14 18:26:20,077 [ERROR] Error:
+Traceback (most recent call last):
+  File "C:\Users\User\AppData\Local\Programs\Python\Python310\lib\site-packages\flask\app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "C:\Users\User\AppData\Local\Programs\Python\Python310\lib\site-packages\flask\app.py", line 891, in dispatch_request
+    self.raise_routing_exception(req)
+  File "C:\Users\User\AppData\Local\Programs\Python\Python310\lib\site-packages\flask\app.py", line 500, in raise_routing_exception
+    raise request.routing_exception  # type: ignore[misc]
+  File "C:\Users\User\AppData\Local\Programs\Python\Python310\lib\site-packages\flask\ctx.py", line 362, in match_request
+    result = self.url_adapter.match(return_rule=True)  # type: ignore
+  File "C:\Users\User\AppData\Local\Programs\Python\Python310\lib\site-packages\werkzeug\routing\map.py", line 629, in match
+    raise NotFound() from None
+werkzeug.exceptions.NotFound: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+2026-08-14 18:26:20,080 [INFO] 127.0.0.1 - - [14/Aug/2026 18:26:20] "[35m[1mGET /favicon.ico HTTP/1.1[0m" 500 -
+2026-08-14 18:26:40,052 [INFO] 127.0.0.1 - - [14/Aug/2026 18:26:40] "GET /stream HTTP/1.1" 200 -
+2026-08-27 21:01:36,782 [INFO] WARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:7860
+ * Running on http://192.168.1.5:7860
+2026-08-27 21:01:36,782 [INFO] Press CTRL+C to quit
+2026-08-27 21:04:41,138 [INFO] 127.0.0.1 - - [27/Aug/2026 21:04:41] "GET /test HTTP/1.1" 200 -
+2026-08-27 21:26:27,734 [INFO] WARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:7860
+ * Running on http://192.168.1.5:7860
+2026-08-27 21:26:27,735 [INFO] Press CTRL+C to quit
+2026-08-27 21:26:31,300 [INFO] 127.0.0.1 - - [27/Aug/2026 21:26:31] "GET / HTTP/1.1" 200 -
+2026-08-27 21:26:31,425 [INFO] 127.0.0.1 - - [27/Aug/2026 21:26:31] "GET /static/css/style.css HTTP/1.1" 200 -
+2026-08-27 21:26:31,428 [INFO] 127.0.0.1 - - [27/Aug/2026 21:26:31] "GET /static/js/app.js HTTP/1.1" 200 -
+2026-08-27 21:26:31,434 [INFO] 127.0.0.1 - - [27/Aug/2026 21:26:31] "GET /static/manifest.json HTTP/1.1" 200 -
+2026-08-27 21:26:31,727 [INFO] 127.0.0.1 - - [27/Aug/2026 21:26:31] "GET /api/potholes HTTP/1.1" 200 -
+2026-08-27 21:26:31,728 [INFO] 127.0.0.1 - - [27/Aug/2026 21:26:31] "GET /api/stats HTTP/1.1" 200 -
+2026-08-27 21:26:31,843 [ERROR] Error:
+Traceback (most recent call last):
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 891, in dispatch_request
+    self.raise_routing_exception(req)
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 500, in raise_routing_exception
+    raise request.routing_exception  # type: ignore[misc]
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\ctx.py", line 362, in match_request
+    result = self.url_adapter.match(return_rule=True)  # type: ignore
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\werkzeug\routing\map.py", line 629, in match
+    raise NotFound() from None
+werkzeug.exceptions.NotFound: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+2026-08-27 21:26:31,848 [INFO] 127.0.0.1 - - [27/Aug/2026 21:26:31] "GET /favicon.ico HTTP/1.1" 500 -
+2026-08-27 21:26:36,570 [INFO] 127.0.0.1 - - [27/Aug/2026 21:26:36] "GET /test HTTP/1.1" 200 -
+2026-08-27 21:26:36,602 [INFO] 127.0.0.1 - - [27/Aug/2026 21:26:36] "GET /static/css/style.css HTTP/1.1" 304 -
+2026-08-27 21:26:36,616 [INFO] 127.0.0.1 - - [27/Aug/2026 21:26:36] "GET /static/css/test.css HTTP/1.1" 200 -
+2026-08-27 21:26:36,621 [INFO] 127.0.0.1 - - [27/Aug/2026 21:26:36] "GET /static/js/test.js HTTP/1.1" 200 -
+2026-08-27 21:26:36,888 [ERROR] Error:
+Traceback (most recent call last):
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 891, in dispatch_request
+    self.raise_routing_exception(req)
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 500, in raise_routing_exception
+    raise request.routing_exception  # type: ignore[misc]
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\ctx.py", line 362, in match_request
+    result = self.url_adapter.match(return_rule=True)  # type: ignore
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\werkzeug\routing\map.py", line 629, in match
+    raise NotFound() from None
+werkzeug.exceptions.NotFound: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+2026-08-27 21:26:36,890 [INFO] 127.0.0.1 - - [27/Aug/2026 21:26:36] "GET /favicon.ico HTTP/1.1" 500 -
+2026-08-27 21:26:51,756 [INFO] 127.0.0.1 - - [27/Aug/2026 21:26:51] "GET /stream HTTP/1.1" 200 -
+2026-08-27 21:26:57,324 [INFO] 127.0.0.1 - - [27/Aug/2026 21:26:57] "GET / HTTP/1.1" 200 -
+2026-08-27 21:26:57,358 [INFO] 127.0.0.1 - - [27/Aug/2026 21:26:57] "GET /static/css/style.css HTTP/1.1" 304 -
+2026-08-27 21:26:57,363 [INFO] 127.0.0.1 - - [27/Aug/2026 21:26:57] "GET /static/js/app.js HTTP/1.1" 304 -
+2026-08-27 21:26:57,369 [INFO] 127.0.0.1 - - [27/Aug/2026 21:26:57] "GET /static/manifest.json HTTP/1.1" 304 -
+2026-08-27 21:26:57,402 [INFO] 127.0.0.1 - - [27/Aug/2026 21:26:57] "GET /api/potholes HTTP/1.1" 200 -
+2026-08-27 21:26:57,404 [INFO] 127.0.0.1 - - [27/Aug/2026 21:26:57] "GET /api/stats HTTP/1.1" 200 -
+2026-08-27 21:26:57,596 [ERROR] Error:
+Traceback (most recent call last):
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 891, in dispatch_request
+    self.raise_routing_exception(req)
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 500, in raise_routing_exception
+    raise request.routing_exception  # type: ignore[misc]
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\ctx.py", line 362, in match_request
+    result = self.url_adapter.match(return_rule=True)  # type: ignore
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\werkzeug\routing\map.py", line 629, in match
+    raise NotFound() from None
+werkzeug.exceptions.NotFound: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+2026-08-27 21:26:57,600 [INFO] 127.0.0.1 - - [27/Aug/2026 21:26:57] "GET /favicon.ico HTTP/1.1" 500 -
+2026-08-27 21:27:17,456 [INFO] 127.0.0.1 - - [27/Aug/2026 21:27:17] "GET /stream HTTP/1.1" 200 -
+2026-08-27 21:27:57,305 [INFO] 127.0.0.1 - - [27/Aug/2026 21:27:57] "GET /test HTTP/1.1" 200 -
+2026-08-27 21:27:57,339 [INFO] 127.0.0.1 - - [27/Aug/2026 21:27:57] "GET /static/css/style.css HTTP/1.1" 304 -
+2026-08-27 21:27:57,347 [INFO] 127.0.0.1 - - [27/Aug/2026 21:27:57] "GET /static/css/test.css HTTP/1.1" 304 -
+2026-08-27 21:27:57,350 [INFO] 127.0.0.1 - - [27/Aug/2026 21:27:57] "GET /static/js/test.js HTTP/1.1" 304 -
+2026-08-27 21:27:57,368 [ERROR] Error:
+Traceback (most recent call last):
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 891, in dispatch_request
+    self.raise_routing_exception(req)
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 500, in raise_routing_exception
+    raise request.routing_exception  # type: ignore[misc]
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\ctx.py", line 362, in match_request
+    result = self.url_adapter.match(return_rule=True)  # type: ignore
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\werkzeug\routing\map.py", line 629, in match
+    raise NotFound() from None
+werkzeug.exceptions.NotFound: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+2026-08-27 21:27:57,371 [INFO] 127.0.0.1 - - [27/Aug/2026 21:27:57] "GET /favicon.ico HTTP/1.1" 500 -
+2026-08-27 21:28:03,878 [ERROR] Error:
+Traceback (most recent call last):
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+  File "C:\ProjectSendiri\Deteksi_Lubang_JalanRaya\app\main.py", line 354, in detect_image
+    load_model_lazy()
+  File "C:\ProjectSendiri\Deteksi_Lubang_JalanRaya\app\main.py", line 74, in load_model_lazy
+    import cv2 as _cv2
+ModuleNotFoundError: No module named 'cv2'
+2026-08-27 21:28:03,880 [INFO] 127.0.0.1 - - [27/Aug/2026 21:28:03] "POST /api/detect-image HTTP/1.1" 500 -
+2026-08-27 21:31:49,138 [INFO] WARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:7860
+ * Running on http://192.168.1.5:7860
+2026-08-27 21:31:49,139 [INFO] Press CTRL+C to quit
+2026-08-27 21:33:12,224 [INFO] 127.0.0.1 - - [27/Aug/2026 21:33:12] "GET /test HTTP/1.1" 200 -
+2026-08-27 21:33:12,266 [INFO] 127.0.0.1 - - [27/Aug/2026 21:33:12] "GET /static/css/style.css HTTP/1.1" 304 -
+2026-08-27 21:33:12,272 [INFO] 127.0.0.1 - - [27/Aug/2026 21:33:12] "GET /static/css/test.css HTTP/1.1" 304 -
+2026-08-27 21:33:12,287 [INFO] 127.0.0.1 - - [27/Aug/2026 21:33:12] "GET /static/js/test.js HTTP/1.1" 304 -
+2026-08-27 21:33:12,754 [ERROR] Error:
+Traceback (most recent call last):
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 891, in dispatch_request
+    self.raise_routing_exception(req)
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 500, in raise_routing_exception
+    raise request.routing_exception  # type: ignore[misc]
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\ctx.py", line 362, in match_request
+    result = self.url_adapter.match(return_rule=True)  # type: ignore
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\werkzeug\routing\map.py", line 629, in match
+    raise NotFound() from None
+werkzeug.exceptions.NotFound: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+2026-08-27 21:33:12,757 [INFO] 127.0.0.1 - - [27/Aug/2026 21:33:12] "GET /favicon.ico HTTP/1.1" 500 -
+2026-08-27 21:33:20,753 [INFO] Memulai pemuatan model YOLOv9 lokal...
+2026-08-27 21:33:31,057 [INFO] YOLOv9 model loaded successfully.
+2026-08-27 21:33:33,440 [INFO] 127.0.0.1 - - [27/Aug/2026 21:33:33] "POST /api/detect-image HTTP/1.1" 200 -
+2026-08-27 21:42:02,049 [INFO] WARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:7860
+ * Running on http://192.168.1.5:7860
+2026-08-27 21:42:02,050 [INFO] Press CTRL+C to quit
+2026-08-27 21:44:01,372 [INFO] 127.0.0.1 - - [27/Aug/2026 21:44:01] "GET /test HTTP/1.1" 200 -
+2026-08-27 21:44:01,450 [INFO] 127.0.0.1 - - [27/Aug/2026 21:44:01] "GET /static/css/style.css HTTP/1.1" 304 -
+2026-08-27 21:44:01,458 [INFO] 127.0.0.1 - - [27/Aug/2026 21:44:01] "GET /static/css/test.css HTTP/1.1" 200 -
+2026-08-27 21:44:01,465 [INFO] 127.0.0.1 - - [27/Aug/2026 21:44:01] "GET /static/js/test.js HTTP/1.1" 200 -
+2026-08-27 21:44:01,664 [ERROR] Error:
+Traceback (most recent call last):
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 891, in dispatch_request
+    self.raise_routing_exception(req)
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 500, in raise_routing_exception
+    raise request.routing_exception  # type: ignore[misc]
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\ctx.py", line 362, in match_request
+    result = self.url_adapter.match(return_rule=True)  # type: ignore
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\werkzeug\routing\map.py", line 629, in match
+    raise NotFound() from None
+werkzeug.exceptions.NotFound: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+2026-08-27 21:44:01,672 [INFO] 127.0.0.1 - - [27/Aug/2026 21:44:01] "GET /favicon.ico HTTP/1.1" 500 -
+2026-08-27 21:45:45,007 [INFO] 127.0.0.1 - - [27/Aug/2026 21:45:45] "GET /test HTTP/1.1" 200 -
+2026-08-27 21:45:45,078 [INFO] 127.0.0.1 - - [27/Aug/2026 21:45:45] "GET /static/css/style.css HTTP/1.1" 200 -
+2026-08-27 21:45:45,157 [INFO] 127.0.0.1 - - [27/Aug/2026 21:45:45] "GET /static/css/test.css HTTP/1.1" 200 -
+2026-08-27 21:45:45,216 [INFO] 127.0.0.1 - - [27/Aug/2026 21:45:45] "GET /static/js/test.js HTTP/1.1" 200 -
+2026-08-27 21:45:45,553 [ERROR] Error:
+Traceback (most recent call last):
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 891, in dispatch_request
+    self.raise_routing_exception(req)
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 500, in raise_routing_exception
+    raise request.routing_exception  # type: ignore[misc]
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\ctx.py", line 362, in match_request
+    result = self.url_adapter.match(return_rule=True)  # type: ignore
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\werkzeug\routing\map.py", line 629, in match
+    raise NotFound() from None
+werkzeug.exceptions.NotFound: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+2026-08-27 21:45:45,558 [INFO] 127.0.0.1 - - [27/Aug/2026 21:45:45] "GET /favicon.ico HTTP/1.1" 500 -
+2026-08-27 21:45:46,785 [INFO] 127.0.0.1 - - [27/Aug/2026 21:45:46] "GET /test HTTP/1.1" 200 -
+2026-08-27 21:45:46,857 [INFO] 127.0.0.1 - - [27/Aug/2026 21:45:46] "GET /static/css/style.css HTTP/1.1" 200 -
+2026-08-27 21:45:46,857 [INFO] 127.0.0.1 - - [27/Aug/2026 21:45:46] "GET /static/css/test.css HTTP/1.1" 200 -
+2026-08-27 21:45:46,880 [INFO] 127.0.0.1 - - [27/Aug/2026 21:45:46] "GET /static/js/test.js HTTP/1.1" 200 -
+2026-08-27 21:45:47,487 [ERROR] Error:
+Traceback (most recent call last):
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 891, in dispatch_request
+    self.raise_routing_exception(req)
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 500, in raise_routing_exception
+    raise request.routing_exception  # type: ignore[misc]
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\ctx.py", line 362, in match_request
+    result = self.url_adapter.match(return_rule=True)  # type: ignore
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\werkzeug\routing\map.py", line 629, in match
+    raise NotFound() from None
+werkzeug.exceptions.NotFound: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+2026-08-27 21:45:47,492 [INFO] 127.0.0.1 - - [27/Aug/2026 21:45:47] "GET /favicon.ico HTTP/1.1" 500 -
+2026-08-27 21:45:47,742 [ERROR] Error:
+Traceback (most recent call last):
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 891, in dispatch_request
+    self.raise_routing_exception(req)
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 500, in raise_routing_exception
+    raise request.routing_exception  # type: ignore[misc]
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\ctx.py", line 362, in match_request
+    result = self.url_adapter.match(return_rule=True)  # type: ignore
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\werkzeug\routing\map.py", line 629, in match
+    raise NotFound() from None
+werkzeug.exceptions.NotFound: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+2026-08-27 21:45:47,747 [INFO] 127.0.0.1 - - [27/Aug/2026 21:45:47] "GET /favicon.ico HTTP/1.1" 500 -
+2026-08-27 21:45:49,034 [INFO] 127.0.0.1 - - [27/Aug/2026 21:45:49] "GET /test HTTP/1.1" 200 -
+2026-08-27 21:45:49,061 [INFO] 127.0.0.1 - - [27/Aug/2026 21:45:49] "GET /static/css/style.css HTTP/1.1" 200 -
+2026-08-27 21:45:49,066 [INFO] 127.0.0.1 - - [27/Aug/2026 21:45:49] "GET /static/css/test.css HTTP/1.1" 200 -
+2026-08-27 21:45:49,071 [INFO] 127.0.0.1 - - [27/Aug/2026 21:45:49] "GET /static/js/test.js HTTP/1.1" 200 -
+2026-08-27 21:45:49,339 [ERROR] Error:
+Traceback (most recent call last):
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 891, in dispatch_request
+    self.raise_routing_exception(req)
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 500, in raise_routing_exception
+    raise request.routing_exception  # type: ignore[misc]
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\ctx.py", line 362, in match_request
+    result = self.url_adapter.match(return_rule=True)  # type: ignore
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\werkzeug\routing\map.py", line 629, in match
+    raise NotFound() from None
+werkzeug.exceptions.NotFound: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+2026-08-27 21:45:49,343 [INFO] 127.0.0.1 - - [27/Aug/2026 21:45:49] "GET /favicon.ico HTTP/1.1" 500 -
+2026-08-27 21:45:49,593 [INFO] 127.0.0.1 - - [27/Aug/2026 21:45:49] "GET /test HTTP/1.1" 200 -
+2026-08-27 21:45:49,627 [INFO] 127.0.0.1 - - [27/Aug/2026 21:45:49] "GET /static/css/style.css HTTP/1.1" 200 -
+2026-08-27 21:45:49,629 [INFO] 127.0.0.1 - - [27/Aug/2026 21:45:49] "GET /static/css/test.css HTTP/1.1" 200 -
+2026-08-27 21:45:49,694 [INFO] 127.0.0.1 - - [27/Aug/2026 21:45:49] "GET /static/js/test.js HTTP/1.1" 200 -
+2026-08-27 21:45:49,873 [ERROR] Error:
+Traceback (most recent call last):
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 891, in dispatch_request
+    self.raise_routing_exception(req)
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 500, in raise_routing_exception
+    raise request.routing_exception  # type: ignore[misc]
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\ctx.py", line 362, in match_request
+    result = self.url_adapter.match(return_rule=True)  # type: ignore
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\werkzeug\routing\map.py", line 629, in match
+    raise NotFound() from None
+werkzeug.exceptions.NotFound: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+2026-08-27 21:45:49,876 [INFO] 127.0.0.1 - - [27/Aug/2026 21:45:49] "GET /favicon.ico HTTP/1.1" 500 -
+2026-08-27 21:45:56,363 [INFO] 127.0.0.1 - - [27/Aug/2026 21:45:56] "POST /api/detect-image HTTP/1.1" 200 -
+2026-08-27 21:52:22,377 [INFO] WARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:7860
+ * Running on http://192.168.1.5:7860
+2026-08-27 21:52:22,377 [INFO] Press CTRL+C to quit
+2026-08-27 21:54:37,598 [INFO] 127.0.0.1 - - [27/Aug/2026 21:54:37] "GET /test HTTP/1.1" 200 -
+2026-08-27 21:54:37,631 [INFO] 127.0.0.1 - - [27/Aug/2026 21:54:37] "GET /static/css/style.css HTTP/1.1" 200 -
+2026-08-27 21:54:37,634 [INFO] 127.0.0.1 - - [27/Aug/2026 21:54:37] "GET /static/css/test.css HTTP/1.1" 200 -
+2026-08-27 21:54:37,638 [INFO] 127.0.0.1 - - [27/Aug/2026 21:54:37] "GET /static/js/test.js HTTP/1.1" 200 -
+2026-08-27 21:54:37,933 [ERROR] Error:
+Traceback (most recent call last):
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 891, in dispatch_request
+    self.raise_routing_exception(req)
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 500, in raise_routing_exception
+    raise request.routing_exception  # type: ignore[misc]
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\ctx.py", line 362, in match_request
+    result = self.url_adapter.match(return_rule=True)  # type: ignore
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\werkzeug\routing\map.py", line 629, in match
+    raise NotFound() from None
+werkzeug.exceptions.NotFound: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+2026-08-27 21:54:37,935 [INFO] 127.0.0.1 - - [27/Aug/2026 21:54:37] "GET /favicon.ico HTTP/1.1" 500 -
+2026-08-27 21:54:45,790 [INFO] 127.0.0.1 - - [27/Aug/2026 21:54:45] "POST /api/detect-image HTTP/1.1" 200 -
+2026-08-27 22:09:13,323 [INFO] WARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:7860
+ * Running on http://192.168.1.5:7860
+2026-08-27 22:09:13,323 [INFO] Press CTRL+C to quit
+2026-08-27 22:10:01,802 [INFO] 127.0.0.1 - - [27/Aug/2026 22:10:01] "GET /test HTTP/1.1" 200 -
+2026-08-27 22:10:01,841 [INFO] 127.0.0.1 - - [27/Aug/2026 22:10:01] "GET /static/css/style.css HTTP/1.1" 200 -
+2026-08-27 22:10:01,844 [INFO] 127.0.0.1 - - [27/Aug/2026 22:10:01] "GET /static/css/test.css HTTP/1.1" 200 -
+2026-08-27 22:10:01,850 [INFO] 127.0.0.1 - - [27/Aug/2026 22:10:01] "GET /static/js/test.js HTTP/1.1" 200 -
+2026-08-27 22:10:02,188 [ERROR] Error:
+Traceback (most recent call last):
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 891, in dispatch_request
+    self.raise_routing_exception(req)
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 500, in raise_routing_exception
+    raise request.routing_exception  # type: ignore[misc]
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\ctx.py", line 362, in match_request
+    result = self.url_adapter.match(return_rule=True)  # type: ignore
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\werkzeug\routing\map.py", line 629, in match
+    raise NotFound() from None
+werkzeug.exceptions.NotFound: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+2026-08-27 22:10:02,190 [INFO] 127.0.0.1 - - [27/Aug/2026 22:10:02] "GET /favicon.ico HTTP/1.1" 500 -
+2026-08-27 22:10:09,857 [INFO] 127.0.0.1 - - [27/Aug/2026 22:10:09] "POST /api/detect-image HTTP/1.1" 200 -
+2026-08-27 22:10:21,469 [INFO] 127.0.0.1 - - [27/Aug/2026 22:10:21] "POST /api/detect-image HTTP/1.1" 200 -
+2026-08-27 22:10:34,713 [INFO] 127.0.0.1 - - [27/Aug/2026 22:10:34] "POST /api/detect-image HTTP/1.1" 200 -
+2026-08-27 22:10:48,626 [INFO] 127.0.0.1 - - [27/Aug/2026 22:10:48] "POST /api/detect-image HTTP/1.1" 200 -
+2026-08-27 22:21:02,826 [INFO] WARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:7860
+ * Running on http://192.168.1.5:7860
+2026-08-27 22:21:02,826 [INFO] Press CTRL+C to quit
+2026-08-27 22:23:05,299 [INFO] 127.0.0.1 - - [27/Aug/2026 22:23:05] "GET /test HTTP/1.1" 200 -
+2026-08-27 22:23:05,431 [INFO] 127.0.0.1 - - [27/Aug/2026 22:23:05] "GET /static/css/style.css HTTP/1.1" 200 -
+2026-08-27 22:23:05,434 [INFO] 127.0.0.1 - - [27/Aug/2026 22:23:05] "GET /static/css/test.css HTTP/1.1" 200 -
+2026-08-27 22:23:05,434 [INFO] 127.0.0.1 - - [27/Aug/2026 22:23:05] "GET /static/js/test.js HTTP/1.1" 200 -
+2026-08-27 22:23:06,521 [ERROR] Error:
+Traceback (most recent call last):
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 891, in dispatch_request
+    self.raise_routing_exception(req)
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 500, in raise_routing_exception
+    raise request.routing_exception  # type: ignore[misc]
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\ctx.py", line 362, in match_request
+    result = self.url_adapter.match(return_rule=True)  # type: ignore
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\werkzeug\routing\map.py", line 629, in match
+    raise NotFound() from None
+werkzeug.exceptions.NotFound: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+2026-08-27 22:23:06,526 [INFO] 127.0.0.1 - - [27/Aug/2026 22:23:06] "GET /favicon.ico HTTP/1.1" 500 -
+2026-08-27 22:23:17,885 [INFO] 127.0.0.1 - - [27/Aug/2026 22:23:17] "GET /test HTTP/1.1" 200 -
+2026-08-27 22:23:17,916 [INFO] 127.0.0.1 - - [27/Aug/2026 22:23:17] "GET /static/css/style.css HTTP/1.1" 304 -
+2026-08-27 22:23:17,921 [INFO] 127.0.0.1 - - [27/Aug/2026 22:23:17] "GET /static/css/test.css HTTP/1.1" 304 -
+2026-08-27 22:23:17,926 [INFO] 127.0.0.1 - - [27/Aug/2026 22:23:17] "GET /static/js/test.js HTTP/1.1" 304 -
+2026-08-27 22:23:17,990 [ERROR] Error:
+Traceback (most recent call last):
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 891, in dispatch_request
+    self.raise_routing_exception(req)
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 500, in raise_routing_exception
+    raise request.routing_exception  # type: ignore[misc]
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\ctx.py", line 362, in match_request
+    result = self.url_adapter.match(return_rule=True)  # type: ignore
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\werkzeug\routing\map.py", line 629, in match
+    raise NotFound() from None
+werkzeug.exceptions.NotFound: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+2026-08-27 22:23:17,992 [INFO] 127.0.0.1 - - [27/Aug/2026 22:23:17] "GET /favicon.ico HTTP/1.1" 500 -
+2026-08-27 22:23:18,051 [INFO] 127.0.0.1 - - [27/Aug/2026 22:23:18] "GET /test HTTP/1.1" 200 -
+2026-08-27 22:23:18,191 [INFO] 127.0.0.1 - - [27/Aug/2026 22:23:18] "GET /static/css/style.css HTTP/1.1" 304 -
+2026-08-27 22:23:18,195 [INFO] 127.0.0.1 - - [27/Aug/2026 22:23:18] "GET /static/css/test.css HTTP/1.1" 304 -
+2026-08-27 22:23:18,199 [INFO] 127.0.0.1 - - [27/Aug/2026 22:23:18] "GET /static/js/test.js HTTP/1.1" 304 -
+2026-08-27 22:23:18,212 [ERROR] Error:
+Traceback (most recent call last):
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 891, in dispatch_request
+    self.raise_routing_exception(req)
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 500, in raise_routing_exception
+    raise request.routing_exception  # type: ignore[misc]
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\ctx.py", line 362, in match_request
+    result = self.url_adapter.match(return_rule=True)  # type: ignore
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\werkzeug\routing\map.py", line 629, in match
+    raise NotFound() from None
+werkzeug.exceptions.NotFound: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+2026-08-27 22:23:18,213 [INFO] 127.0.0.1 - - [27/Aug/2026 22:23:18] "GET /favicon.ico HTTP/1.1" 500 -
+2026-08-27 22:23:18,280 [INFO] 127.0.0.1 - - [27/Aug/2026 22:23:18] "GET /test HTTP/1.1" 200 -
+2026-08-27 22:23:18,552 [INFO] 127.0.0.1 - - [27/Aug/2026 22:23:18] "GET /static/css/style.css HTTP/1.1" 304 -
+2026-08-27 22:23:18,556 [INFO] 127.0.0.1 - - [27/Aug/2026 22:23:18] "GET /static/css/test.css HTTP/1.1" 304 -
+2026-08-27 22:23:18,561 [INFO] 127.0.0.1 - - [27/Aug/2026 22:23:18] "GET /static/js/test.js HTTP/1.1" 304 -
+2026-08-27 22:23:18,574 [ERROR] Error:
+Traceback (most recent call last):
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 891, in dispatch_request
+    self.raise_routing_exception(req)
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 500, in raise_routing_exception
+    raise request.routing_exception  # type: ignore[misc]
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\ctx.py", line 362, in match_request
+    result = self.url_adapter.match(return_rule=True)  # type: ignore
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\werkzeug\routing\map.py", line 629, in match
+    raise NotFound() from None
+werkzeug.exceptions.NotFound: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+2026-08-27 22:23:18,576 [INFO] 127.0.0.1 - - [27/Aug/2026 22:23:18] "GET /favicon.ico HTTP/1.1" 500 -
+2026-08-27 22:23:18,591 [INFO] 127.0.0.1 - - [27/Aug/2026 22:23:18] "GET /test HTTP/1.1" 200 -
+2026-08-27 22:23:18,810 [INFO] 127.0.0.1 - - [27/Aug/2026 22:23:18] "GET /static/css/style.css HTTP/1.1" 304 -
+2026-08-27 22:23:18,814 [INFO] 127.0.0.1 - - [27/Aug/2026 22:23:18] "GET /static/css/test.css HTTP/1.1" 304 -
+2026-08-27 22:23:18,816 [INFO] 127.0.0.1 - - [27/Aug/2026 22:23:18] "GET /static/js/test.js HTTP/1.1" 304 -
+2026-08-27 22:23:18,832 [ERROR] Error:
+Traceback (most recent call last):
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 891, in dispatch_request
+    self.raise_routing_exception(req)
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 500, in raise_routing_exception
+    raise request.routing_exception  # type: ignore[misc]
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\ctx.py", line 362, in match_request
+    result = self.url_adapter.match(return_rule=True)  # type: ignore
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\werkzeug\routing\map.py", line 629, in match
+    raise NotFound() from None
+werkzeug.exceptions.NotFound: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+2026-08-27 22:23:18,834 [INFO] 127.0.0.1 - - [27/Aug/2026 22:23:18] "GET /favicon.ico HTTP/1.1" 500 -
+2026-08-27 22:23:18,915 [INFO] 127.0.0.1 - - [27/Aug/2026 22:23:18] "GET /test HTTP/1.1" 200 -
+2026-08-27 22:23:19,085 [INFO] 127.0.0.1 - - [27/Aug/2026 22:23:19] "GET /static/css/style.css HTTP/1.1" 304 -
+2026-08-27 22:23:19,091 [INFO] 127.0.0.1 - - [27/Aug/2026 22:23:19] "GET /static/css/test.css HTTP/1.1" 304 -
+2026-08-27 22:23:19,095 [INFO] 127.0.0.1 - - [27/Aug/2026 22:23:19] "GET /static/js/test.js HTTP/1.1" 304 -
+2026-08-27 22:23:19,111 [ERROR] Error:
+Traceback (most recent call last):
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 891, in dispatch_request
+    self.raise_routing_exception(req)
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 500, in raise_routing_exception
+    raise request.routing_exception  # type: ignore[misc]
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\ctx.py", line 362, in match_request
+    result = self.url_adapter.match(return_rule=True)  # type: ignore
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\werkzeug\routing\map.py", line 629, in match
+    raise NotFound() from None
+werkzeug.exceptions.NotFound: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+2026-08-27 22:23:19,113 [INFO] 127.0.0.1 - - [27/Aug/2026 22:23:19] "GET /favicon.ico HTTP/1.1" 500 -
+2026-08-27 22:23:23,984 [INFO] Memulai pemuatan model YOLOv9 lokal...
+2026-08-27 22:23:35,216 [INFO] YOLOv9 model loaded successfully.
+2026-08-27 22:23:47,668 [INFO] 127.0.0.1 - - [27/Aug/2026 22:23:47] "POST /api/detect-image HTTP/1.1" 200 -
+2026-08-27 22:24:10,328 [INFO] 127.0.0.1 - - [27/Aug/2026 22:24:10] "POST /api/detect-image HTTP/1.1" 200 -
+2026-08-27 22:24:24,792 [INFO] 127.0.0.1 - - [27/Aug/2026 22:24:24] "POST /api/detect-image HTTP/1.1" 200 -
+2026-08-27 22:35:14,698 [INFO] 127.0.0.1 - - [27/Aug/2026 22:35:14] "POST /api/detect-image HTTP/1.1" 200 -
+2026-08-27 22:37:25,790 [INFO] 127.0.0.1 - - [27/Aug/2026 22:37:25] "POST /api/detect-image HTTP/1.1" 200 -
+2026-08-27 22:38:24,824 [INFO] 127.0.0.1 - - [27/Aug/2026 22:38:24] "POST /api/detect-image HTTP/1.1" 200 -
+2026-08-27 22:38:38,873 [INFO] 127.0.0.1 - - [27/Aug/2026 22:38:38] "POST /api/detect-image HTTP/1.1" 200 -
+2026-08-27 22:39:34,180 [INFO] 127.0.0.1 - - [27/Aug/2026 22:39:34] "POST /api/detect-image HTTP/1.1" 200 -
+2026-08-27 22:39:47,718 [INFO] 127.0.0.1 - - [27/Aug/2026 22:39:47] "POST /api/detect-image HTTP/1.1" 200 -
+2026-08-27 22:40:55,278 [INFO] 127.0.0.1 - - [27/Aug/2026 22:40:55] "POST /api/detect-image HTTP/1.1" 200 -
+2026-08-27 22:41:19,167 [INFO] 127.0.0.1 - - [27/Aug/2026 22:41:19] "POST /api/detect-image HTTP/1.1" 200 -
+2026-08-27 22:42:53,345 [INFO] 127.0.0.1 - - [27/Aug/2026 22:42:53] "POST /api/detect-image HTTP/1.1" 200 -
+2026-08-27 22:44:29,146 [INFO] 127.0.0.1 - - [27/Aug/2026 22:44:29] "POST /api/detect-image HTTP/1.1" 200 -
+2026-08-27 22:44:42,749 [INFO] 127.0.0.1 - - [27/Aug/2026 22:44:42] "POST /api/detect-image HTTP/1.1" 200 -
+2026-08-27 22:45:46,416 [INFO] 127.0.0.1 - - [27/Aug/2026 22:45:46] "POST /api/detect-image HTTP/1.1" 200 -
+2026-08-28 08:44:58,105 [INFO] WARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:7860
+ * Running on http://192.168.1.62:7860
+2026-08-28 08:44:58,106 [INFO] Press CTRL+C to quit
+2026-08-28 08:45:01,238 [INFO] 127.0.0.1 - - [28/Aug/2026 08:45:01] "GET / HTTP/1.1" 200 -
+2026-08-28 08:45:01,391 [INFO] 127.0.0.1 - - [28/Aug/2026 08:45:01] "GET /static/css/style.css HTTP/1.1" 304 -
+2026-08-28 08:45:01,398 [INFO] 127.0.0.1 - - [28/Aug/2026 08:45:01] "GET /static/js/app.js HTTP/1.1" 304 -
+2026-08-28 08:45:01,403 [INFO] 127.0.0.1 - - [28/Aug/2026 08:45:01] "GET /static/manifest.json HTTP/1.1" 304 -
+2026-08-28 08:45:01,561 [INFO] 127.0.0.1 - - [28/Aug/2026 08:45:01] "GET /api/potholes HTTP/1.1" 200 -
+2026-08-28 08:45:01,563 [INFO] 127.0.0.1 - - [28/Aug/2026 08:45:01] "GET /api/stats HTTP/1.1" 200 -
+2026-08-28 08:45:01,917 [ERROR] Error:
+Traceback (most recent call last):
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 891, in dispatch_request
+    self.raise_routing_exception(req)
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 500, in raise_routing_exception
+    raise request.routing_exception  # type: ignore[misc]
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\ctx.py", line 362, in match_request
+    result = self.url_adapter.match(return_rule=True)  # type: ignore
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\werkzeug\routing\map.py", line 629, in match
+    raise NotFound() from None
+werkzeug.exceptions.NotFound: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+2026-08-28 08:45:01,921 [INFO] 127.0.0.1 - - [28/Aug/2026 08:45:01] "GET /favicon.ico HTTP/1.1" 500 -
+2026-08-28 08:45:21,278 [INFO] 127.0.0.1 - - [28/Aug/2026 08:45:21] "GET /gallery HTTP/1.1" 200 -
+2026-08-28 08:45:21,317 [INFO] 127.0.0.1 - - [28/Aug/2026 08:45:21] "GET /static/css/style.css HTTP/1.1" 304 -
+2026-08-28 08:45:21,320 [INFO] 127.0.0.1 - - [28/Aug/2026 08:45:21] "GET /static/css/gallery.css HTTP/1.1" 200 -
+2026-08-28 08:45:21,323 [INFO] 127.0.0.1 - - [28/Aug/2026 08:45:21] "GET /static/js/gallery.js HTTP/1.1" 200 -
+2026-08-28 08:45:21,334 [INFO] 127.0.0.1 - - [28/Aug/2026 08:45:21] "GET /api/potholes HTTP/1.1" 200 -
+2026-08-28 08:45:21,517 [ERROR] Error:
+Traceback (most recent call last):
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 891, in dispatch_request
+    self.raise_routing_exception(req)
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 500, in raise_routing_exception
+    raise request.routing_exception  # type: ignore[misc]
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\ctx.py", line 362, in match_request
+    result = self.url_adapter.match(return_rule=True)  # type: ignore
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\werkzeug\routing\map.py", line 629, in match
+    raise NotFound() from None
+werkzeug.exceptions.NotFound: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+2026-08-28 08:45:21,519 [INFO] 127.0.0.1 - - [28/Aug/2026 08:45:21] "GET /favicon.ico HTTP/1.1" 500 -
+2026-08-28 08:45:21,562 [INFO] 127.0.0.1 - - [28/Aug/2026 08:45:21] "GET /stream HTTP/1.1" 200 -
+2026-08-28 08:45:33,611 [INFO] 127.0.0.1 - - [28/Aug/2026 08:45:33] "GET / HTTP/1.1" 200 -
+2026-08-28 08:45:33,644 [INFO] 127.0.0.1 - - [28/Aug/2026 08:45:33] "GET /static/css/style.css HTTP/1.1" 304 -
+2026-08-28 08:45:33,650 [INFO] 127.0.0.1 - - [28/Aug/2026 08:45:33] "GET /static/js/app.js HTTP/1.1" 304 -
+2026-08-28 08:45:33,654 [INFO] 127.0.0.1 - - [28/Aug/2026 08:45:33] "GET /static/manifest.json HTTP/1.1" 304 -
+2026-08-28 08:45:33,727 [INFO] 127.0.0.1 - - [28/Aug/2026 08:45:33] "GET /api/potholes HTTP/1.1" 200 -
+2026-08-28 08:45:33,733 [INFO] 127.0.0.1 - - [28/Aug/2026 08:45:33] "GET /api/stats HTTP/1.1" 200 -
+2026-08-28 08:45:33,935 [ERROR] Error:
+Traceback (most recent call last):
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 891, in dispatch_request
+    self.raise_routing_exception(req)
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 500, in raise_routing_exception
+    raise request.routing_exception  # type: ignore[misc]
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\ctx.py", line 362, in match_request
+    result = self.url_adapter.match(return_rule=True)  # type: ignore
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\werkzeug\routing\map.py", line 629, in match
+    raise NotFound() from None
+werkzeug.exceptions.NotFound: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+2026-08-28 08:45:33,937 [INFO] 127.0.0.1 - - [28/Aug/2026 08:45:33] "GET /favicon.ico HTTP/1.1" 500 -
+2026-08-28 08:45:37,900 [INFO] Memulai pemuatan model YOLOv9 lokal...
+2026-08-28 08:45:38,512 [INFO] Memulai pemuatan model YOLOv9 lokal...
+2026-08-28 08:45:39,057 [INFO] Memulai pemuatan model YOLOv9 lokal...
+2026-08-28 08:45:39,862 [INFO] Memulai pemuatan model YOLOv9 lokal...
+2026-08-28 08:45:40,694 [INFO] Memulai pemuatan model YOLOv9 lokal...
+2026-08-28 08:45:53,738 [INFO] 127.0.0.1 - - [28/Aug/2026 08:45:53] "GET /stream HTTP/1.1" 200 -
+2026-08-28 08:46:01,667 [INFO] YOLOv9 model loaded successfully.
+2026-08-28 08:46:01,771 [INFO] YOLOv9 model loaded successfully.
+2026-08-28 08:46:01,780 [INFO] YOLOv9 model loaded successfully.
+2026-08-28 08:46:01,785 [INFO] YOLOv9 model loaded successfully.
+2026-08-28 08:46:01,807 [INFO] YOLOv9 model loaded successfully.
+2026-08-28 08:46:04,077 [INFO] 127.0.0.1 - - [28/Aug/2026 08:46:04] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-28 08:46:06,734 [INFO] 127.0.0.1 - - [28/Aug/2026 08:46:06] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-28 08:46:08,490 [INFO] 127.0.0.1 - - [28/Aug/2026 08:46:08] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-28 08:46:10,089 [INFO] 127.0.0.1 - - [28/Aug/2026 08:46:10] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-28 08:46:10,103 [INFO] 127.0.0.1 - - [28/Aug/2026 08:46:10] "GET /gallery HTTP/1.1" 200 -
+2026-08-28 08:46:10,219 [INFO] 127.0.0.1 - - [28/Aug/2026 08:46:10] "GET /static/css/style.css HTTP/1.1" 304 -
+2026-08-28 08:46:10,221 [INFO] 127.0.0.1 - - [28/Aug/2026 08:46:10] "GET /static/css/gallery.css HTTP/1.1" 304 -
+2026-08-28 08:46:10,223 [INFO] 127.0.0.1 - - [28/Aug/2026 08:46:10] "GET /static/js/gallery.js HTTP/1.1" 304 -
+2026-08-28 08:46:10,285 [INFO] 127.0.0.1 - - [28/Aug/2026 08:46:10] "GET /api/potholes HTTP/1.1" 200 -
+2026-08-28 08:46:10,403 [INFO] 127.0.0.1 - - [28/Aug/2026 08:46:10] "GET /static/snapshots/01b227b1a4e1.jpg HTTP/1.1" 200 -
+2026-08-28 08:46:10,408 [ERROR] Error:
+Traceback (most recent call last):
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 891, in dispatch_request
+    self.raise_routing_exception(req)
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 500, in raise_routing_exception
+    raise request.routing_exception  # type: ignore[misc]
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\ctx.py", line 362, in match_request
+    result = self.url_adapter.match(return_rule=True)  # type: ignore
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\werkzeug\routing\map.py", line 629, in match
+    raise NotFound() from None
+werkzeug.exceptions.NotFound: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+2026-08-28 08:46:10,412 [INFO] 127.0.0.1 - - [28/Aug/2026 08:46:10] "GET /favicon.ico HTTP/1.1" 500 -
+2026-08-28 08:46:12,184 [INFO] 127.0.0.1 - - [28/Aug/2026 08:46:12] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-28 08:46:13,752 [INFO] 127.0.0.1 - - [28/Aug/2026 08:46:13] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-28 08:46:15,238 [INFO] 127.0.0.1 - - [28/Aug/2026 08:46:15] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-28 08:46:16,783 [INFO] 127.0.0.1 - - [28/Aug/2026 08:46:16] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-28 08:46:18,217 [INFO] 127.0.0.1 - - [28/Aug/2026 08:46:18] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-28 08:46:19,592 [INFO] 127.0.0.1 - - [28/Aug/2026 08:46:19] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-28 08:46:20,870 [INFO] 127.0.0.1 - - [28/Aug/2026 08:46:20] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-28 08:46:22,236 [INFO] 127.0.0.1 - - [28/Aug/2026 08:46:22] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-28 08:46:23,040 [INFO] 127.0.0.1 - - [28/Aug/2026 08:46:23] "DELETE /api/potholes/1 HTTP/1.1" 200 -
+2026-08-28 08:46:23,604 [INFO] 127.0.0.1 - - [28/Aug/2026 08:46:23] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-28 08:46:25,009 [INFO] 127.0.0.1 - - [28/Aug/2026 08:46:25] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-28 08:46:26,357 [INFO] 127.0.0.1 - - [28/Aug/2026 08:46:26] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-28 08:46:27,644 [INFO] 127.0.0.1 - - [28/Aug/2026 08:46:27] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-28 08:46:27,651 [INFO] 127.0.0.1 - - [28/Aug/2026 08:46:27] "GET / HTTP/1.1" 200 -
+2026-08-28 08:46:27,693 [INFO] 127.0.0.1 - - [28/Aug/2026 08:46:27] "GET /static/css/style.css HTTP/1.1" 304 -
+2026-08-28 08:46:27,698 [INFO] 127.0.0.1 - - [28/Aug/2026 08:46:27] "GET /static/manifest.json HTTP/1.1" 304 -
+2026-08-28 08:46:27,704 [INFO] 127.0.0.1 - - [28/Aug/2026 08:46:27] "GET /static/js/app.js HTTP/1.1" 304 -
+2026-08-28 08:46:27,773 [INFO] 127.0.0.1 - - [28/Aug/2026 08:46:27] "GET /api/potholes HTTP/1.1" 200 -
+2026-08-28 08:46:27,779 [INFO] 127.0.0.1 - - [28/Aug/2026 08:46:27] "GET /api/stats HTTP/1.1" 200 -
+2026-08-28 08:46:27,796 [ERROR] Error:
+Traceback (most recent call last):
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 891, in dispatch_request
+    self.raise_routing_exception(req)
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 500, in raise_routing_exception
+    raise request.routing_exception  # type: ignore[misc]
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\ctx.py", line 362, in match_request
+    result = self.url_adapter.match(return_rule=True)  # type: ignore
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\werkzeug\routing\map.py", line 629, in match
+    raise NotFound() from None
+werkzeug.exceptions.NotFound: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+2026-08-28 08:46:27,799 [INFO] 127.0.0.1 - - [28/Aug/2026 08:46:27] "GET /favicon.ico HTTP/1.1" 500 -
+2026-08-28 08:46:29,369 [INFO] 127.0.0.1 - - [28/Aug/2026 08:46:29] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-28 08:46:30,714 [INFO] 127.0.0.1 - - [28/Aug/2026 08:46:30] "GET /static/css/style.css HTTP/1.1" 304 -
+2026-08-28 08:46:30,753 [ERROR] Error:
+Traceback (most recent call last):
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 891, in dispatch_request
+    self.raise_routing_exception(req)
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 500, in raise_routing_exception
+    raise request.routing_exception  # type: ignore[misc]
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\ctx.py", line 362, in match_request
+    result = self.url_adapter.match(return_rule=True)  # type: ignore
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\werkzeug\routing\map.py", line 629, in match
+    raise NotFound() from None
+werkzeug.exceptions.NotFound: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+2026-08-28 08:46:30,757 [INFO] 127.0.0.1 - - [28/Aug/2026 08:46:30] "GET /static/manifest.json HTTP/1.1" 304 -
+2026-08-28 08:46:30,758 [INFO] 127.0.0.1 - - [28/Aug/2026 08:46:30] "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 500 -
+2026-08-28 08:46:47,802 [INFO] 127.0.0.1 - - [28/Aug/2026 08:46:47] "GET /stream HTTP/1.1" 200 -
+2026-08-28 08:46:54,206 [INFO] 127.0.0.1 - - [28/Aug/2026 08:46:54] "GET /gallery HTTP/1.1" 200 -
+2026-08-28 08:46:54,262 [INFO] 127.0.0.1 - - [28/Aug/2026 08:46:54] "GET /static/css/style.css HTTP/1.1" 304 -
+2026-08-28 08:46:54,269 [INFO] 127.0.0.1 - - [28/Aug/2026 08:46:54] "GET /static/css/gallery.css HTTP/1.1" 304 -
+2026-08-28 08:46:54,271 [INFO] 127.0.0.1 - - [28/Aug/2026 08:46:54] "GET /static/js/gallery.js HTTP/1.1" 304 -
+2026-08-28 08:46:54,285 [INFO] 127.0.0.1 - - [28/Aug/2026 08:46:54] "GET /api/potholes HTTP/1.1" 200 -
+2026-08-28 08:46:54,286 [ERROR] Error:
+Traceback (most recent call last):
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 891, in dispatch_request
+    self.raise_routing_exception(req)
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 500, in raise_routing_exception
+    raise request.routing_exception  # type: ignore[misc]
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\ctx.py", line 362, in match_request
+    result = self.url_adapter.match(return_rule=True)  # type: ignore
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\werkzeug\routing\map.py", line 629, in match
+    raise NotFound() from None
+werkzeug.exceptions.NotFound: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+2026-08-28 08:46:54,295 [INFO] 127.0.0.1 - - [28/Aug/2026 08:46:54] "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 500 -
+2026-08-28 08:46:54,377 [INFO] 127.0.0.1 - - [28/Aug/2026 08:46:54] "GET /static/snapshots/6aeef51ad2de.jpg HTTP/1.1" 200 -
+2026-08-28 08:46:54,381 [INFO] 127.0.0.1 - - [28/Aug/2026 08:46:54] "GET /static/snapshots/25f977067082.jpg HTTP/1.1" 200 -
+2026-08-28 08:46:54,383 [INFO] 127.0.0.1 - - [28/Aug/2026 08:46:54] "GET /static/snapshots/2b65a784220f.jpg HTTP/1.1" 200 -
+2026-08-28 08:46:54,674 [ERROR] Error:
+Traceback (most recent call last):
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 891, in dispatch_request
+    self.raise_routing_exception(req)
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 500, in raise_routing_exception
+    raise request.routing_exception  # type: ignore[misc]
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\ctx.py", line 362, in match_request
+    result = self.url_adapter.match(return_rule=True)  # type: ignore
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\werkzeug\routing\map.py", line 629, in match
+    raise NotFound() from None
+werkzeug.exceptions.NotFound: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+2026-08-28 08:46:54,676 [INFO] 127.0.0.1 - - [28/Aug/2026 08:46:54] "GET /favicon.ico HTTP/1.1" 500 -
+2026-08-28 08:47:02,359 [INFO] 127.0.0.1 - - [28/Aug/2026 08:47:02] "DELETE /api/potholes/4 HTTP/1.1" 200 -
+2026-08-28 08:47:04,857 [INFO] 127.0.0.1 - - [28/Aug/2026 08:47:04] "DELETE /api/potholes/3 HTTP/1.1" 200 -
+2026-08-28 08:47:07,281 [INFO] 127.0.0.1 - - [28/Aug/2026 08:47:07] "DELETE /api/potholes/2 HTTP/1.1" 200 -
+2026-08-28 08:47:17,921 [INFO] 127.0.0.1 - - [28/Aug/2026 08:47:17] "GET / HTTP/1.1" 200 -
+2026-08-28 08:47:17,967 [INFO] 127.0.0.1 - - [28/Aug/2026 08:47:17] "GET /static/css/style.css HTTP/1.1" 304 -
+2026-08-28 08:47:17,974 [INFO] 127.0.0.1 - - [28/Aug/2026 08:47:17] "GET /static/js/app.js HTTP/1.1" 304 -
+2026-08-28 08:47:17,982 [INFO] 127.0.0.1 - - [28/Aug/2026 08:47:17] "GET /static/manifest.json HTTP/1.1" 304 -
+2026-08-28 08:47:17,996 [ERROR] Error:
+Traceback (most recent call last):
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 891, in dispatch_request
+    self.raise_routing_exception(req)
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 500, in raise_routing_exception
+    raise request.routing_exception  # type: ignore[misc]
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\ctx.py", line 362, in match_request
+    result = self.url_adapter.match(return_rule=True)  # type: ignore
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\werkzeug\routing\map.py", line 629, in match
+    raise NotFound() from None
+werkzeug.exceptions.NotFound: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+2026-08-28 08:47:18,000 [INFO] 127.0.0.1 - - [28/Aug/2026 08:47:18] "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 500 -
+2026-08-28 08:47:18,249 [INFO] 127.0.0.1 - - [28/Aug/2026 08:47:18] "GET /api/potholes HTTP/1.1" 200 -
+2026-08-28 08:47:18,250 [INFO] 127.0.0.1 - - [28/Aug/2026 08:47:18] "GET /api/stats HTTP/1.1" 200 -
+2026-08-28 08:47:18,317 [ERROR] Error:
+Traceback (most recent call last):
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 891, in dispatch_request
+    self.raise_routing_exception(req)
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 500, in raise_routing_exception
+    raise request.routing_exception  # type: ignore[misc]
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\ctx.py", line 362, in match_request
+    result = self.url_adapter.match(return_rule=True)  # type: ignore
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\werkzeug\routing\map.py", line 629, in match
+    raise NotFound() from None
+werkzeug.exceptions.NotFound: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+2026-08-28 08:47:18,319 [INFO] 127.0.0.1 - - [28/Aug/2026 08:47:18] "GET /favicon.ico HTTP/1.1" 500 -
+2026-08-28 08:47:22,894 [INFO] 127.0.0.1 - - [28/Aug/2026 08:47:22] "GET /stream HTTP/1.1" 200 -
+2026-08-28 08:47:22,895 [INFO] 127.0.0.1 - - [28/Aug/2026 08:47:22] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-28 08:47:22,911 [INFO] 127.0.0.1 - - [28/Aug/2026 08:47:22] "GET /api/stats HTTP/1.1" 200 -
+2026-08-28 08:47:24,382 [INFO] 127.0.0.1 - - [28/Aug/2026 08:47:24] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-28 08:47:26,166 [INFO] 127.0.0.1 - - [28/Aug/2026 08:47:26] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-28 08:47:28,953 [INFO] 127.0.0.1 - - [28/Aug/2026 08:47:28] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-28 08:47:32,111 [INFO] 127.0.0.1 - - [28/Aug/2026 08:47:32] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-28 08:47:36,355 [INFO] 127.0.0.1 - - [28/Aug/2026 08:47:36] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-28 08:47:39,448 [INFO] 127.0.0.1 - - [28/Aug/2026 08:47:39] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-28 08:47:42,499 [INFO] 127.0.0.1 - - [28/Aug/2026 08:47:42] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-28 08:47:42,513 [INFO] 127.0.0.1 - - [28/Aug/2026 08:47:42] "GET /gallery HTTP/1.1" 200 -
+2026-08-28 08:47:42,649 [INFO] 127.0.0.1 - - [28/Aug/2026 08:47:42] "GET /static/css/style.css HTTP/1.1" 304 -
+2026-08-28 08:47:42,669 [INFO] 127.0.0.1 - - [28/Aug/2026 08:47:42] "GET /static/css/gallery.css HTTP/1.1" 304 -
+2026-08-28 08:47:42,736 [INFO] 127.0.0.1 - - [28/Aug/2026 08:47:42] "GET /static/js/gallery.js HTTP/1.1" 304 -
+2026-08-28 08:47:42,752 [ERROR] Error:
+Traceback (most recent call last):
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 891, in dispatch_request
+    self.raise_routing_exception(req)
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 500, in raise_routing_exception
+    raise request.routing_exception  # type: ignore[misc]
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\ctx.py", line 362, in match_request
+    result = self.url_adapter.match(return_rule=True)  # type: ignore
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\werkzeug\routing\map.py", line 629, in match
+    raise NotFound() from None
+werkzeug.exceptions.NotFound: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+2026-08-28 08:47:42,770 [INFO] 127.0.0.1 - - [28/Aug/2026 08:47:42] "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 500 -
+2026-08-28 08:47:42,893 [ERROR] Error:
+Traceback (most recent call last):
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 891, in dispatch_request
+    self.raise_routing_exception(req)
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 500, in raise_routing_exception
+    raise request.routing_exception  # type: ignore[misc]
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\ctx.py", line 362, in match_request
+    result = self.url_adapter.match(return_rule=True)  # type: ignore
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\werkzeug\routing\map.py", line 629, in match
+    raise NotFound() from None
+werkzeug.exceptions.NotFound: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+2026-08-28 08:47:42,896 [INFO] 127.0.0.1 - - [28/Aug/2026 08:47:42] "GET /api/potholes HTTP/1.1" 200 -
+2026-08-28 08:47:42,917 [INFO] 127.0.0.1 - - [28/Aug/2026 08:47:42] "GET /favicon.ico HTTP/1.1" 500 -
+2026-08-28 08:47:43,071 [INFO] 127.0.0.1 - - [28/Aug/2026 08:47:43] "GET /static/snapshots/495cd36ba002.jpg HTTP/1.1" 200 -
+2026-08-28 08:47:43,077 [INFO] 127.0.0.1 - - [28/Aug/2026 08:47:43] "GET /static/snapshots/0c34f4a2ee01.jpg HTTP/1.1" 200 -
+2026-08-28 08:47:46,200 [INFO] 127.0.0.1 - - [28/Aug/2026 08:47:46] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-28 08:47:48,901 [INFO] 127.0.0.1 - - [28/Aug/2026 08:47:48] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-28 08:47:51,135 [INFO] 127.0.0.1 - - [28/Aug/2026 08:47:51] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-28 08:47:54,703 [INFO] 127.0.0.1 - - [28/Aug/2026 08:47:54] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-28 08:47:57,302 [INFO] 127.0.0.1 - - [28/Aug/2026 08:47:57] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-28 08:47:59,590 [INFO] 127.0.0.1 - - [28/Aug/2026 08:47:59] "POST /api/detect-frame HTTP/1.1" 200 -
+2026-08-28 13:49:58,806 [INFO] WARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:7860
+ * Running on http://192.168.1.62:7860
+2026-08-28 13:49:58,807 [INFO] Press CTRL+C to quit
+2026-08-28 13:50:02,395 [INFO] 127.0.0.1 - - [28/Aug/2026 13:50:02] "GET / HTTP/1.1" 200 -
+2026-08-28 13:50:02,559 [INFO] 127.0.0.1 - - [28/Aug/2026 13:50:02] "GET /static/css/style.css HTTP/1.1" 304 -
+2026-08-28 13:50:02,560 [INFO] 127.0.0.1 - - [28/Aug/2026 13:50:02] "GET /static/js/app.js HTTP/1.1" 304 -
+2026-08-28 13:50:02,566 [INFO] 127.0.0.1 - - [28/Aug/2026 13:50:02] "GET /static/manifest.json HTTP/1.1" 304 -
+2026-08-28 13:50:02,909 [INFO] 127.0.0.1 - - [28/Aug/2026 13:50:02] "GET /api/stats HTTP/1.1" 200 -
+2026-08-28 13:50:02,910 [INFO] 127.0.0.1 - - [28/Aug/2026 13:50:02] "GET /api/potholes HTTP/1.1" 200 -
+2026-08-28 13:50:03,013 [ERROR] Error:
+Traceback (most recent call last):
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 891, in dispatch_request
+    self.raise_routing_exception(req)
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 500, in raise_routing_exception
+    raise request.routing_exception  # type: ignore[misc]
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\ctx.py", line 362, in match_request
+    result = self.url_adapter.match(return_rule=True)  # type: ignore
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\werkzeug\routing\map.py", line 629, in match
+    raise NotFound() from None
+werkzeug.exceptions.NotFound: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+2026-08-28 13:50:03,017 [INFO] 127.0.0.1 - - [28/Aug/2026 13:50:03] "GET /favicon.ico HTTP/1.1" 500 -
+2026-08-28 13:50:04,195 [INFO] 127.0.0.1 - - [28/Aug/2026 13:50:04] "GET /gallery HTTP/1.1" 200 -
+2026-08-28 13:50:04,257 [INFO] 127.0.0.1 - - [28/Aug/2026 13:50:04] "GET /static/css/style.css HTTP/1.1" 304 -
+2026-08-28 13:50:04,263 [INFO] 127.0.0.1 - - [28/Aug/2026 13:50:04] "GET /static/css/gallery.css HTTP/1.1" 304 -
+2026-08-28 13:50:04,264 [INFO] 127.0.0.1 - - [28/Aug/2026 13:50:04] "GET /static/js/gallery.js HTTP/1.1" 304 -
+2026-08-28 13:50:04,377 [INFO] 127.0.0.1 - - [28/Aug/2026 13:50:04] "GET /api/potholes HTTP/1.1" 200 -
+2026-08-28 13:50:04,584 [ERROR] Error:
+Traceback (most recent call last):
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 891, in dispatch_request
+    self.raise_routing_exception(req)
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 500, in raise_routing_exception
+    raise request.routing_exception  # type: ignore[misc]
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\ctx.py", line 362, in match_request
+    result = self.url_adapter.match(return_rule=True)  # type: ignore
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\werkzeug\routing\map.py", line 629, in match
+    raise NotFound() from None
+werkzeug.exceptions.NotFound: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+2026-08-28 13:50:04,587 [INFO] 127.0.0.1 - - [28/Aug/2026 13:50:04] "GET /favicon.ico HTTP/1.1" 500 -
+2026-08-28 13:50:04,633 [INFO] 127.0.0.1 - - [28/Aug/2026 13:50:04] "GET /static/snapshots/495cd36ba002.jpg HTTP/1.1" 304 -
+2026-08-28 13:50:04,634 [INFO] 127.0.0.1 - - [28/Aug/2026 13:50:04] "GET /static/snapshots/0c34f4a2ee01.jpg HTTP/1.1" 304 -
+2026-08-28 13:50:05,251 [ERROR] Error:
+Traceback (most recent call last):
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 891, in dispatch_request
+    self.raise_routing_exception(req)
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 500, in raise_routing_exception
+    raise request.routing_exception  # type: ignore[misc]
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\ctx.py", line 362, in match_request
+    result = self.url_adapter.match(return_rule=True)  # type: ignore
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\werkzeug\routing\map.py", line 629, in match
+    raise NotFound() from None
+werkzeug.exceptions.NotFound: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+2026-08-28 13:50:05,254 [INFO] 127.0.0.1 - - [28/Aug/2026 13:50:05] "GET /favicon.ico HTTP/1.1" 500 -
+2026-08-28 13:50:05,724 [INFO] 127.0.0.1 - - [28/Aug/2026 13:50:05] "GET /test HTTP/1.1" 200 -
+2026-08-28 13:50:05,765 [INFO] 127.0.0.1 - - [28/Aug/2026 13:50:05] "GET /static/css/style.css HTTP/1.1" 304 -
+2026-08-28 13:50:05,773 [INFO] 127.0.0.1 - - [28/Aug/2026 13:50:05] "GET /static/css/test.css HTTP/1.1" 304 -
+2026-08-28 13:50:05,774 [INFO] 127.0.0.1 - - [28/Aug/2026 13:50:05] "GET /static/js/test.js HTTP/1.1" 304 -
+2026-08-28 13:50:06,052 [ERROR] Error:
+Traceback (most recent call last):
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 891, in dispatch_request
+    self.raise_routing_exception(req)
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 500, in raise_routing_exception
+    raise request.routing_exception  # type: ignore[misc]
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\ctx.py", line 362, in match_request
+    result = self.url_adapter.match(return_rule=True)  # type: ignore
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\werkzeug\routing\map.py", line 629, in match
+    raise NotFound() from None
+werkzeug.exceptions.NotFound: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+2026-08-28 13:50:06,055 [INFO] 127.0.0.1 - - [28/Aug/2026 13:50:06] "GET /favicon.ico HTTP/1.1" 500 -
+2026-08-28 13:50:13,538 [INFO] Memulai pemuatan model YOLOv9 lokal...
+2026-08-28 13:50:22,957 [INFO] 127.0.0.1 - - [28/Aug/2026 13:50:22] "GET /stream HTTP/1.1" 200 -
+2026-08-28 13:50:25,060 [INFO] 127.0.0.1 - - [28/Aug/2026 13:50:25] "GET /stream HTTP/1.1" 200 -
+2026-08-28 13:50:25,825 [INFO] YOLOv9 model loaded successfully.
+2026-08-28 13:50:38,081 [INFO] 127.0.0.1 - - [28/Aug/2026 13:50:38] "POST /api/detect-image HTTP/1.1" 200 -
+2026-08-28 13:53:49,630 [INFO] 127.0.0.1 - - [28/Aug/2026 13:53:49] "POST /api/detect-image HTTP/1.1" 200 -
+2026-08-28 13:54:04,033 [INFO] 127.0.0.1 - - [28/Aug/2026 13:54:04] "POST /api/detect-image HTTP/1.1" 200 -
+2026-09-01 09:39:01,557 [INFO] WARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:7860
+ * Running on http://192.168.1.4:7860
+2026-09-01 09:39:01,558 [INFO] Press CTRL+C to quit
+2026-09-01 09:39:06,896 [INFO] 127.0.0.1 - - [01/Sep/2026 09:39:06] "GET / HTTP/1.1" 200 -
+2026-09-01 09:39:07,065 [INFO] 127.0.0.1 - - [01/Sep/2026 09:39:07] "GET /static/js/app.js HTTP/1.1" 200 -
+2026-09-01 09:39:07,067 [INFO] 127.0.0.1 - - [01/Sep/2026 09:39:07] "GET /static/css/style.css HTTP/1.1" 200 -
+2026-09-01 09:39:07,084 [INFO] 127.0.0.1 - - [01/Sep/2026 09:39:07] "GET /static/manifest.json HTTP/1.1" 200 -
+2026-09-01 09:39:07,551 [INFO] 127.0.0.1 - - [01/Sep/2026 09:39:07] "GET /api/potholes HTTP/1.1" 200 -
+2026-09-01 09:39:07,552 [INFO] 127.0.0.1 - - [01/Sep/2026 09:39:07] "GET /api/stats HTTP/1.1" 200 -
+2026-09-01 09:39:07,721 [ERROR] Error:
+Traceback (most recent call last):
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 891, in dispatch_request
+    self.raise_routing_exception(req)
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 500, in raise_routing_exception
+    raise request.routing_exception  # type: ignore[misc]
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\ctx.py", line 362, in match_request
+    result = self.url_adapter.match(return_rule=True)  # type: ignore
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\werkzeug\routing\map.py", line 629, in match
+    raise NotFound() from None
+werkzeug.exceptions.NotFound: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+2026-09-01 09:39:07,726 [INFO] 127.0.0.1 - - [01/Sep/2026 09:39:07] "GET /favicon.ico HTTP/1.1" 500 -
+2026-09-01 09:39:09,254 [INFO] 127.0.0.1 - - [01/Sep/2026 09:39:09] "GET /test HTTP/1.1" 200 -
+2026-09-01 09:39:09,316 [INFO] 127.0.0.1 - - [01/Sep/2026 09:39:09] "GET /static/css/style.css HTTP/1.1" 304 -
+2026-09-01 09:39:09,320 [INFO] 127.0.0.1 - - [01/Sep/2026 09:39:09] "GET /static/css/test.css HTTP/1.1" 200 -
+2026-09-01 09:39:09,326 [INFO] 127.0.0.1 - - [01/Sep/2026 09:39:09] "GET /static/js/test.js HTTP/1.1" 200 -
+2026-09-01 09:39:09,759 [ERROR] Error:
+Traceback (most recent call last):
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 891, in dispatch_request
+    self.raise_routing_exception(req)
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 500, in raise_routing_exception
+    raise request.routing_exception  # type: ignore[misc]
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\ctx.py", line 362, in match_request
+    result = self.url_adapter.match(return_rule=True)  # type: ignore
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\werkzeug\routing\map.py", line 629, in match
+    raise NotFound() from None
+werkzeug.exceptions.NotFound: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+2026-09-01 09:39:09,765 [INFO] 127.0.0.1 - - [01/Sep/2026 09:39:09] "GET /favicon.ico HTTP/1.1" 500 -
+2026-09-01 09:39:27,577 [INFO] 127.0.0.1 - - [01/Sep/2026 09:39:27] "GET /stream HTTP/1.1" 200 -
+2026-09-01 09:39:28,920 [INFO] Memulai pemuatan model YOLOv9 lokal...
+2026-09-01 09:39:42,090 [INFO] YOLOv9 model loaded successfully.
+2026-09-01 09:39:53,471 [INFO] 127.0.0.1 - - [01/Sep/2026 09:39:53] "POST /api/detect-image HTTP/1.1" 200 -
+2026-09-01 09:54:10,224 [INFO] 127.0.0.1 - - [01/Sep/2026 09:54:10] "GET /test HTTP/1.1" 200 -
+2026-09-01 09:54:10,276 [INFO] 127.0.0.1 - - [01/Sep/2026 09:54:10] "GET /static/css/style.css HTTP/1.1" 200 -
+2026-09-01 09:54:10,276 [INFO] 127.0.0.1 - - [01/Sep/2026 09:54:10] "GET /static/css/test.css HTTP/1.1" 200 -
+2026-09-01 09:54:10,287 [INFO] 127.0.0.1 - - [01/Sep/2026 09:54:10] "GET /static/js/test.js HTTP/1.1" 200 -
+2026-09-01 09:54:10,553 [ERROR] Error:
+Traceback (most recent call last):
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 891, in dispatch_request
+    self.raise_routing_exception(req)
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 500, in raise_routing_exception
+    raise request.routing_exception  # type: ignore[misc]
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\ctx.py", line 362, in match_request
+    result = self.url_adapter.match(return_rule=True)  # type: ignore
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\werkzeug\routing\map.py", line 629, in match
+    raise NotFound() from None
+werkzeug.exceptions.NotFound: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+2026-09-01 09:54:10,560 [INFO] 127.0.0.1 - - [01/Sep/2026 09:54:10] "GET /favicon.ico HTTP/1.1" 500 -
+2026-09-01 09:54:17,931 [INFO] WARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:7860
+ * Running on http://192.168.1.4:7860
+2026-09-01 09:54:17,932 [INFO] Press CTRL+C to quit
+2026-09-01 09:54:21,582 [INFO] 127.0.0.1 - - [01/Sep/2026 09:54:21] "GET / HTTP/1.1" 200 -
+2026-09-01 09:54:21,688 [INFO] 127.0.0.1 - - [01/Sep/2026 09:54:21] "GET /static/css/style.css HTTP/1.1" 304 -
+2026-09-01 09:54:21,696 [INFO] 127.0.0.1 - - [01/Sep/2026 09:54:21] "GET /static/js/app.js HTTP/1.1" 200 -
+2026-09-01 09:54:21,697 [INFO] 127.0.0.1 - - [01/Sep/2026 09:54:21] "GET /static/manifest.json HTTP/1.1" 304 -
+2026-09-01 09:54:21,948 [INFO] 127.0.0.1 - - [01/Sep/2026 09:54:21] "GET /api/potholes HTTP/1.1" 200 -
+2026-09-01 09:54:21,949 [INFO] 127.0.0.1 - - [01/Sep/2026 09:54:21] "GET /api/stats HTTP/1.1" 200 -
+2026-09-01 09:54:22,006 [ERROR] Error:
+Traceback (most recent call last):
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 891, in dispatch_request
+    self.raise_routing_exception(req)
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 500, in raise_routing_exception
+    raise request.routing_exception  # type: ignore[misc]
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\ctx.py", line 362, in match_request
+    result = self.url_adapter.match(return_rule=True)  # type: ignore
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\werkzeug\routing\map.py", line 629, in match
+    raise NotFound() from None
+werkzeug.exceptions.NotFound: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+2026-09-01 09:54:22,012 [INFO] 127.0.0.1 - - [01/Sep/2026 09:54:22] "GET /favicon.ico HTTP/1.1" 500 -
+2026-09-01 09:54:25,266 [INFO] 127.0.0.1 - - [01/Sep/2026 09:54:25] "GET /test HTTP/1.1" 200 -
+2026-09-01 09:54:25,295 [INFO] 127.0.0.1 - - [01/Sep/2026 09:54:25] "GET /static/css/style.css HTTP/1.1" 304 -
+2026-09-01 09:54:25,303 [INFO] 127.0.0.1 - - [01/Sep/2026 09:54:25] "GET /static/css/test.css HTTP/1.1" 304 -
+2026-09-01 09:54:25,304 [INFO] 127.0.0.1 - - [01/Sep/2026 09:54:25] "GET /static/js/test.js HTTP/1.1" 304 -
+2026-09-01 09:54:25,504 [ERROR] Error:
+Traceback (most recent call last):
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 891, in dispatch_request
+    self.raise_routing_exception(req)
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 500, in raise_routing_exception
+    raise request.routing_exception  # type: ignore[misc]
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\ctx.py", line 362, in match_request
+    result = self.url_adapter.match(return_rule=True)  # type: ignore
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\werkzeug\routing\map.py", line 629, in match
+    raise NotFound() from None
+werkzeug.exceptions.NotFound: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+2026-09-01 09:54:25,506 [INFO] 127.0.0.1 - - [01/Sep/2026 09:54:25] "GET /favicon.ico HTTP/1.1" 500 -
+2026-09-01 09:54:32,454 [INFO] Memulai pemuatan model YOLOv9 lokal...
+2026-09-01 09:54:40,600 [INFO] YOLOv9 model loaded successfully.
+2026-09-01 09:54:41,977 [INFO] 127.0.0.1 - - [01/Sep/2026 09:54:41] "GET /stream HTTP/1.1" 200 -
+2026-09-01 09:54:44,867 [INFO] 127.0.0.1 - - [01/Sep/2026 09:54:44] "POST /api/detect-image HTTP/1.1" 200 -
+2026-09-01 09:55:24,942 [INFO] 127.0.0.1 - - [01/Sep/2026 09:55:24] "POST /api/detect-image HTTP/1.1" 200 -
+2026-09-01 09:55:54,542 [INFO] WARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:7860
+ * Running on http://192.168.1.4:7860
+2026-09-01 09:55:54,542 [INFO] Press CTRL+C to quit
+2026-09-01 09:55:56,784 [INFO] 127.0.0.1 - - [01/Sep/2026 09:55:56] "GET / HTTP/1.1" 200 -
+2026-09-01 09:55:56,885 [INFO] 127.0.0.1 - - [01/Sep/2026 09:55:56] "GET /static/css/style.css HTTP/1.1" 304 -
+2026-09-01 09:55:56,900 [INFO] 127.0.0.1 - - [01/Sep/2026 09:55:56] "GET /static/js/app.js HTTP/1.1" 304 -
+2026-09-01 09:55:56,901 [INFO] 127.0.0.1 - - [01/Sep/2026 09:55:56] "GET /static/manifest.json HTTP/1.1" 304 -
+2026-09-01 09:55:57,142 [INFO] 127.0.0.1 - - [01/Sep/2026 09:55:57] "GET /api/potholes HTTP/1.1" 200 -
+2026-09-01 09:55:57,144 [INFO] 127.0.0.1 - - [01/Sep/2026 09:55:57] "GET /api/stats HTTP/1.1" 200 -
+2026-09-01 09:55:57,214 [ERROR] Error:
+Traceback (most recent call last):
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 891, in dispatch_request
+    self.raise_routing_exception(req)
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 500, in raise_routing_exception
+    raise request.routing_exception  # type: ignore[misc]
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\ctx.py", line 362, in match_request
+    result = self.url_adapter.match(return_rule=True)  # type: ignore
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\werkzeug\routing\map.py", line 629, in match
+    raise NotFound() from None
+werkzeug.exceptions.NotFound: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+2026-09-01 09:55:57,220 [INFO] 127.0.0.1 - - [01/Sep/2026 09:55:57] "GET /favicon.ico HTTP/1.1" 500 -
+2026-09-01 09:55:58,212 [INFO] 127.0.0.1 - - [01/Sep/2026 09:55:58] "GET /test HTTP/1.1" 200 -
+2026-09-01 09:55:58,243 [INFO] 127.0.0.1 - - [01/Sep/2026 09:55:58] "GET /static/css/style.css HTTP/1.1" 304 -
+2026-09-01 09:55:58,247 [INFO] 127.0.0.1 - - [01/Sep/2026 09:55:58] "GET /static/css/test.css HTTP/1.1" 304 -
+2026-09-01 09:55:58,250 [INFO] 127.0.0.1 - - [01/Sep/2026 09:55:58] "GET /static/js/test.js HTTP/1.1" 304 -
+2026-09-01 09:55:58,451 [ERROR] Error:
+Traceback (most recent call last):
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 891, in dispatch_request
+    self.raise_routing_exception(req)
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\app.py", line 500, in raise_routing_exception
+    raise request.routing_exception  # type: ignore[misc]
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\flask\ctx.py", line 362, in match_request
+    result = self.url_adapter.match(return_rule=True)  # type: ignore
+  File "C:\laragon\bin\python\python-3.10\lib\site-packages\werkzeug\routing\map.py", line 629, in match
+    raise NotFound() from None
+werkzeug.exceptions.NotFound: 404 Not Found: The requested URL was not found on the server. If you entered the URL manually please check your spelling and try again.
+2026-09-01 09:55:58,452 [INFO] 127.0.0.1 - - [01/Sep/2026 09:55:58] "GET /favicon.ico HTTP/1.1" 500 -
+2026-09-01 09:56:03,626 [INFO] Memulai pemuatan model YOLOv9 lokal...
+2026-09-01 09:56:11,576 [INFO] YOLOv9 model loaded successfully.
+2026-09-01 09:56:17,179 [INFO] 127.0.0.1 - - [01/Sep/2026 09:56:17] "GET /stream HTTP/1.1" 200 -
+2026-09-01 09:56:18,221 [INFO] 127.0.0.1 - - [01/Sep/2026 09:56:18] "POST /api/detect-image HTTP/1.1" 200 -
+2026-09-01 09:57:31,179 [INFO] 127.0.0.1 - - [01/Sep/2026 09:57:31] "POST /api/detect-image HTTP/1.1" 200 -
+2026-09-01 09:58:48,192 [INFO] 127.0.0.1 - - [01/Sep/2026 09:58:48] "POST /api/detect-image HTTP/1.1" 200 -
+2026-09-01 10:03:18,968 [INFO] 127.0.0.1 - - [01/Sep/2026 10:03:18] "POST /api/detect-image HTTP/1.1" 200 -
+2026-09-01 10:04:23,162 [INFO] 127.0.0.1 - - [01/Sep/2026 10:04:23] "POST /api/detect-image HTTP/1.1" 200 -
+2026-09-01 10:08:58,283 [INFO] 127.0.0.1 - - [01/Sep/2026 10:08:58] "POST /api/detect-image HTTP/1.1" 200 -
+2026-09-01 10:09:10,862 [INFO] 127.0.0.1 - - [01/Sep/2026 10:09:10] "POST /api/detect-image HTTP/1.1" 200 -
+2026-09-01 10:09:56,743 [INFO] 127.0.0.1 - - [01/Sep/2026 10:09:56] "POST /api/detect-image HTTP/1.1" 200 -
+2026-09-01 10:12:08,503 [INFO] 127.0.0.1 - - [01/Sep/2026 10:12:08] "POST /api/detect-image HTTP/1.1" 200 -
+2026-09-01 10:12:15,323 [INFO] 127.0.0.1 - - [01/Sep/2026 10:12:15] "POST /api/detect-image HTTP/1.1" 200 -
+2026-09-01 10:23:58,745 [INFO] 127.0.0.1 - - [01/Sep/2026 10:23:58] "POST /api/detect-image HTTP/1.1" 200 -
