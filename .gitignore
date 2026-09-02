@@ -28,3 +28,6 @@ static/snapshots/*
 Thumbs.db
 
 !pothole_yolov8.pt
+
+# Dokumentasi
+doc/

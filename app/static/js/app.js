@@ -13,6 +13,9 @@ let eventSource = null;
 // GPS state
 let gpsLat = 0, gpsLon = 0, gpsSpeed = 0, gpsHeading = 0, gpsAccuracy = 0;
 
+// Stabilizer state (EMA anti-guncangan)
+let stabilizerEnabled = true;
+
 // Detection settings
 const DETECT_INTERVAL_MS = 800;
 
@@ -29,6 +32,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // Splash screen launch button
     document.getElementById('btn-launch').addEventListener('click', launchApp);
     document.getElementById('btn-stop').addEventListener('click', stopSystem);
+
+    // Stabilizer toggle button
+    const btnStab = document.getElementById('btn-stabilizer');
+    if (btnStab) btnStab.addEventListener('click', toggleStabilizer);
 });
 
 function registerServiceWorker() {
@@ -314,7 +321,7 @@ function startDetectionLoop() {
         if (!video.videoWidth || video.paused) return;
 
         // Resize frame untuk meringankan beban base64 dan mencegah drop FPS
-        const maxDim = 640;
+        const maxDim = 1280;
         let scale = Math.min(maxDim / video.videoWidth, maxDim / video.videoHeight);
         if (scale > 1) scale = 1;
         
@@ -323,7 +330,7 @@ function startDetectionLoop() {
         captureCtx.drawImage(video, 0, 0, captureCanvas.width, captureCanvas.height);
 
         // Turunkan quality ke 0.6 agar ukuran data sangat kecil
-        const frameData = captureCanvas.toDataURL('image/jpeg', 0.6);
+        const frameData = captureCanvas.toDataURL('image/jpeg', 0.75);
 
         try {
             const resp = await fetch('/api/detect-frame', {
@@ -333,7 +340,8 @@ function startDetectionLoop() {
                     frame: frameData,
                     latitude: gpsLat,
                     longitude: gpsLon,
-                    speed: gpsSpeed
+                    speed: gpsSpeed,
+                    stabilizer: stabilizerEnabled
                 })
             });
 
@@ -389,6 +397,36 @@ function stopDetectionLoop() {
 }
 
 // ═══════════════════════════════════════════════
+// 3.5. STABILIZER TOGGLE — On/Off anti-guncangan
+// ═══════════════════════════════════════════════
+function toggleStabilizer() {
+    stabilizerEnabled = !stabilizerEnabled;
+    const btn = document.getElementById('btn-stabilizer');
+    if (btn) {
+        if (stabilizerEnabled) {
+            btn.innerHTML = '🔒 Stabilizer ON';
+            btn.classList.remove('stab-off');
+            btn.classList.add('stab-on');
+        } else {
+            btn.innerHTML = '🔓 Stabilizer OFF';
+            btn.classList.remove('stab-on');
+            btn.classList.add('stab-off');
+        }
+    }
+    const pill = document.getElementById('pill-stab');
+    if (pill) {
+        const dot = pill.querySelector('.dot');
+        if (stabilizerEnabled) {
+            pill.childNodes[pill.childNodes.length - 1].textContent = ' STAB';
+            if (dot) { dot.className = 'dot green'; }
+        } else {
+            pill.childNodes[pill.childNodes.length - 1].textContent = ' STAB OFF';
+            if (dot) { dot.className = 'dot red'; }
+        }
+    }
+}
+
+// ═══════════════════════════════════════════════
 // 4. DRAW SEGMENTATION MASKS + BOUNDING BOXES on canvas overlay
 // ═══════════════════════════════════════════════
 function drawDetections(detections, vw, vh) {
@@ -409,10 +447,16 @@ function drawDetections(detections, vw, vh) {
         if (confidence > 0.7) { color = '#FF3B30'; rgbColor = '255, 59, 48'; }
         else if (confidence > 0.4) { color = '#FF9F0A'; rgbColor = '255, 159, 10'; }
 
-        // Gambar poligon segmentasi (filled semi-transparan + outline) di dalam bounding box
+        // Gambar poligon segmentasi (filled semi-transparan + outline) di-clip ke dalam bounding box
         if (segmentation && segmentation.length >= 3) {
+            ctx.save();
+            // Clip ke area bounding box agar mask tidak keluar
+            ctx.beginPath();
+            ctx.rect(x1, y1, w, h);
+            ctx.clip();
+
             // Fill semi-transparan
-            ctx.fillStyle = `rgba(${rgbColor}, 0.3)`;
+            ctx.fillStyle = `rgba(${rgbColor}, 0.35)`;
             ctx.beginPath();
             ctx.moveTo(segmentation[0][0], segmentation[0][1]);
             for (let i = 1; i < segmentation.length; i++) {
@@ -431,6 +475,31 @@ function drawDetections(detections, vw, vh) {
             }
             ctx.closePath();
             ctx.stroke();
+
+            ctx.restore();
+
+            // Hitung persentase area segmentasi terhadap bounding box
+            const bboxArea = w * h;
+            if (bboxArea > 0) {
+                // Shoelace formula untuk polygon area
+                let segArea = 0;
+                for (let i = 0; i < segmentation.length; i++) {
+                    const j = (i + 1) % segmentation.length;
+                    segArea += segmentation[i][0] * segmentation[j][1];
+                    segArea -= segmentation[j][0] * segmentation[i][1];
+                }
+                segArea = Math.abs(segArea) / 2;
+                const maskPct = Math.min(100, Math.round((segArea / bboxArea) * 100));
+
+                // Label persentase mask di pojok kanan bawah bounding box
+                const maskLabel = `Mask: ${maskPct}%`;
+                ctx.font = 'bold 11px Outfit';
+                const mlw = ctx.measureText(maskLabel).width;
+                ctx.fillStyle = `rgba(0,0,0,0.6)`;
+                ctx.fillRect(x2 - mlw - 10, y2 - 20, mlw + 8, 18);
+                ctx.fillStyle = '#FFFFFF';
+                ctx.fillText(maskLabel, x2 - mlw - 6, y2 - 6);
+            }
         }
 
         // Bounding box rectangle

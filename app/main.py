@@ -261,16 +261,19 @@ def detect_frame():
     latitude = data.get('latitude', 0.0)
     longitude = data.get('longitude', 0.0)
     speed_kmh = round((data.get('speed', 0) or 0) * 3.6, 1)
+    use_stabilizer = data.get('stabilizer', True)
 
     t0 = time.time()
     raw_detections = []
     
+    total_boxes = 0
     if YOLO_MODEL is not None:
-        results = YOLO_MODEL(frame, verbose=False, conf=0.25)
+        results = YOLO_MODEL(frame, verbose=False, conf=0.15, imgsz=1280)
         for r in results:
             # Ambil data segmentasi mask (poligon kontur) jika tersedia
             masks_xy = r.masks.xy if r.masks is not None else []
             for idx, box in enumerate(r.boxes):
+                total_boxes += 1
                 cls_id = int(box.cls[0])
                 conf = float(box.conf[0])
                 x1, y1, x2, y2 = map(int, box.xyxy[0].tolist())
@@ -279,14 +282,15 @@ def detect_frame():
                 seg_points = []
                 if idx < len(masks_xy):
                     seg_points = [[int(p[0]), int(p[1])] for p in masks_xy[idx]]
-                # Filter asumsikan hanya objek di bagian bawah layar yang relevan (jalan)
-                center_y = (y1 + y2) / 2
-                if center_y > fh * 0.35:
-                    raw_detections.append({'x1': x1, 'y1': y1, 'x2': x2, 'y2': y2, 'confidence': round(conf, 3), 'class': cls_name, 'segmentation': seg_points})
+                raw_detections.append({'x1': x1, 'y1': y1, 'x2': x2, 'y2': y2, 'confidence': round(conf, 3), 'class': cls_name, 'segmentation': seg_points})
 
-    # Terapkan Anti-Guncangan pada Bounding Box
-    detections = tracker.update(raw_detections)
+    # Terapkan Anti-Guncangan pada Bounding Box (jika stabilizer aktif)
+    if use_stabilizer:
+        detections = tracker.update(raw_detections)
+    else:
+        detections = raw_detections
     inference_ms = round((time.time() - t0) * 1000, 1)
+    logging.info(f"[detect-frame] frame={fw}x{fh}, raw_boxes={total_boxes}, detections={len(raw_detections)}, tracked={len(detections)}, stabilizer={'ON' if use_stabilizer else 'OFF'}, inference={inference_ms}ms")
 
     global _last_saved_time
     saved = []

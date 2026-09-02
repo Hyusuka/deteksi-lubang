@@ -222,6 +222,26 @@ html, body {
     letter-spacing: 0.5px;
 }
 
+/* Stabilizer toggle button */
+.btn-stabilizer-hud {
+    font-weight: 700;
+    font-size: 0.55rem;
+    padding: 4px 8px;
+    border: none; border-radius: 8px;
+    cursor: pointer;
+    letter-spacing: 0.3px;
+    transition: background 0.2s, color 0.2s;
+    white-space: nowrap;
+}
+.btn-stabilizer-hud.stab-on {
+    background: var(--success);
+    color: #fff;
+}
+.btn-stabilizer-hud.stab-off {
+    background: var(--warn);
+    color: #fff;
+}
+
 /* Speed display — small center */
 .hud-speed-big {
     position: absolute;
