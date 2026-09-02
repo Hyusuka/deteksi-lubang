@@ -268,7 +268,7 @@ def detect_frame():
     
     total_boxes = 0
     if YOLO_MODEL is not None:
-        results = YOLO_MODEL(frame, verbose=False, conf=0.15, imgsz=1280)
+        results = YOLO_MODEL(frame, verbose=False, conf=0.05, imgsz=1280)
         for r in results:
             # Ambil data segmentasi mask (poligon kontur) jika tersedia
             masks_xy = r.masks.xy if r.masks is not None else []
@@ -413,7 +413,7 @@ def detect_image():
         return jsonify({'error': 'Format gambar tidak valid'}), 400
 
     fh, fw = frame.shape[:2]
-    conf_threshold = float(request.form.get('confidence', 0.15))
+    conf_threshold = float(request.form.get('confidence', 0.05))
     t0 = time.time()
     detections = []
 
