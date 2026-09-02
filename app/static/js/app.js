@@ -108,8 +108,9 @@ async function launchApp() {
         // Step 1: GPS must succeed first
         await startGPS();
 
-        // Step 2: Start camera
+        // Step 2: Start camera (dengan delay kecil agar lock hardware dari initCameraList benar-benar terlepas)
         btn.innerHTML = '<span class="btn-icon">📷</span><span>Mengaktifkan Kamera...</span>';
+        await new Promise(r => setTimeout(r, 300));
         const camOk = await startCamera();
 
         if (!camOk) {
@@ -142,11 +143,13 @@ async function startCamera() {
     const select = document.getElementById('camera-select');
     const selectedDeviceId = select.value;
 
-    // Strategi 1: Gunakan deviceId yang dipilih di dropdown
+    let lastError = null;
+
+    // Strategi 1: Gunakan deviceId yang dipilih di dropdown (tanpa width/height agar tidak Overconstrained)
     if (selectedDeviceId) {
         try {
             videoStream = await navigator.mediaDevices.getUserMedia({
-                video: { deviceId: { exact: selectedDeviceId }, width: { ideal: 1280 }, height: { ideal: 720 } },
+                video: { deviceId: { exact: selectedDeviceId } },
                 audio: false
             });
             video.srcObject = videoStream;
@@ -154,14 +157,16 @@ async function startCamera() {
             _onCameraReady(video);
             return true;
         } catch (err) {
-            console.warn('Gagal buka kamera dengan deviceId, mencoba fallback facingMode...', err);
+            console.warn('Gagal buka kamera dengan deviceId:', err.name, err.message);
+            lastError = err;
+            await new Promise(r => setTimeout(r, 300));
         }
     }
 
     // Strategi 2: Fallback ke facingMode environment (kamera belakang)
     try {
         videoStream = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: { ideal: 'environment' }, width: { ideal: 1280 }, height: { ideal: 720 } },
+            video: { facingMode: 'environment' },
             audio: false
         });
         video.srcObject = videoStream;
@@ -169,10 +174,12 @@ async function startCamera() {
         _onCameraReady(video);
         return true;
     } catch (err) {
-        console.warn('Gagal buka kamera facingMode environment, mencoba kamera apapun...', err);
+        console.warn('Gagal buka kamera facingMode environment:', err.name, err.message);
+        lastError = err;
+        await new Promise(r => setTimeout(r, 300));
     }
 
-    // Strategi 3: Fallback terakhir — kamera apa saja yang tersedia
+    // Strategi 3: Fallback terakhir — kamera apa saja yang tersedia (paling dasar)
     try {
         videoStream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
         video.srcObject = videoStream;
@@ -180,8 +187,13 @@ async function startCamera() {
         _onCameraReady(video);
         return true;
     } catch (err) {
-        console.error('Semua strategi kamera gagal:', err);
+        console.error('Semua strategi kamera gagal:', err.name, err.message);
         updatePill('pill-camera', 'CAM ❌', 'red');
+        if (lastError && lastError.name === 'NotReadableError') {
+            alert('Kamera sedang digunakan oleh aplikasi lain (seperti WhatsApp/Zoom). Tutup aplikasi tersebut lalu coba lagi.');
+        } else if (lastError && lastError.name === 'NotAllowedError') {
+            alert('Izin kamera ditolak oleh browser. Silakan periksa pengaturan situs.');
+        }
         return false;
     }
 }
