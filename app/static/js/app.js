@@ -399,6 +399,22 @@ function stopDetectionLoop() {
 // ═══════════════════════════════════════════════
 // 3.5. STABILIZER TOGGLE — On/Off anti-guncangan
 // ═══════════════════════════════════════════════
+let _toastTimer = null;
+
+function showToast(icon, text, type) {
+    const toast = document.getElementById('toast-notification');
+    if (!toast) return;
+    document.getElementById('toast-icon').textContent = icon;
+    document.getElementById('toast-text').textContent = text;
+    toast.className = 'toast-notification show ' + (type || '');
+
+    if (_toastTimer) clearTimeout(_toastTimer);
+    _toastTimer = setTimeout(() => {
+        toast.className = 'toast-notification';
+        _toastTimer = null;
+    }, 2500);
+}
+
 function toggleStabilizer() {
     stabilizerEnabled = !stabilizerEnabled;
     const btn = document.getElementById('btn-stabilizer');
@@ -423,6 +439,13 @@ function toggleStabilizer() {
             pill.childNodes[pill.childNodes.length - 1].textContent = ' STAB OFF';
             if (dot) { dot.className = 'dot red'; }
         }
+    }
+
+    // Tampilkan toast notification
+    if (stabilizerEnabled) {
+        showToast('🔒', 'Video Stabilizer Diaktifkan', 'toast-on');
+    } else {
+        showToast('🔓', 'Video Stabilizer Dimatikan', 'toast-off');
     }
 }
 
