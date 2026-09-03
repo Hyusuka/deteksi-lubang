@@ -334,8 +334,11 @@ function startDetectionLoop() {
     let frameCount = 0;
     let lastFpsTime = Date.now();
 
+    let isDetecting = false;
+
     detectionLoop = setInterval(async () => {
-        if (!video.videoWidth || video.paused) return;
+        if (!video.videoWidth || video.paused || isDetecting) return;
+        isDetecting = true;
 
         // Resize frame untuk meringankan beban base64 dan mencegah drop FPS
         const maxDim = 1280;
@@ -346,7 +349,7 @@ function startDetectionLoop() {
         captureCanvas.height = video.videoHeight * scale;
         captureCtx.drawImage(video, 0, 0, captureCanvas.width, captureCanvas.height);
 
-        // Turunkan quality ke 0.6 agar ukuran data sangat kecil
+        // Turunkan quality ke 0.75 agar ukuran data sangat kecil
         const frameData = captureCanvas.toDataURL('image/jpeg', 0.75);
 
         try {
@@ -362,50 +365,53 @@ function startDetectionLoop() {
                 })
             });
 
-            if (!resp.ok) return;
-            const result = await resp.json();
+            if (resp.ok) {
+                const result = await resp.json();
 
-            // Skala balik koordinat bounding box ke ukuran layar asli
-            const scaleFactor = 1 / scale;
-            if (result.detections) {
-                result.detections.forEach(det => {
-                    det.x1 *= scaleFactor;
-                    det.y1 *= scaleFactor;
-                    det.x2 *= scaleFactor;
-                    det.y2 *= scaleFactor;
-                    // Skala koordinat poligon segmentasi ke ukuran layar asli
-                    if (det.segmentation) {
-                        det.segmentation = det.segmentation.map(p => [p[0] * scaleFactor, p[1] * scaleFactor]);
-                    }
-                });
-            }
+                // Skala balik koordinat bounding box ke ukuran layar asli
+                const scaleFactor = 1 / scale;
+                if (result.detections) {
+                    result.detections.forEach(det => {
+                        det.x1 *= scaleFactor;
+                        det.y1 *= scaleFactor;
+                        det.x2 *= scaleFactor;
+                        det.y2 *= scaleFactor;
+                        // Skala koordinat poligon segmentasi ke ukuran layar asli
+                        if (det.segmentation) {
+                            det.segmentation = det.segmentation.map(p => [p[0] * scaleFactor, p[1] * scaleFactor]);
+                        }
+                    });
+                }
 
-            drawDetections(result.detections, video.videoWidth, video.videoHeight);
-            document.getElementById('m-inference').textContent = result.inference_ms;
+                drawDetections(result.detections, video.videoWidth, video.videoHeight);
+                document.getElementById('m-inference').textContent = result.inference_ms;
 
-            // FPS counter
-            frameCount++;
-            const now = Date.now();
-            if (now - lastFpsTime >= 1000) {
-                const fps = frameCount;
-                frameCount = 0;
-                lastFpsTime = now;
-                document.getElementById('badge-fps').textContent =
-                    `FPS: ${fps} | ${result.inference_ms}ms`;
-            }
+                // FPS counter
+                frameCount++;
+                const now = Date.now();
+                if (now - lastFpsTime >= 1000) {
+                    const fps = frameCount;
+                    frameCount = 0;
+                    lastFpsTime = now;
+                    document.getElementById('badge-fps').textContent =
+                        `FPS: ${fps} | ${result.inference_ms}ms`;
+                }
 
-            if (result.saved && result.saved.length > 0) {
-                result.saved.forEach(det => triggerWarning(det));
-            }
+                if (result.saved && result.saved.length > 0) {
+                    result.saved.forEach(det => triggerWarning(det));
+                }
 
-            // Cek apakah model YOLO aktif di server
-            if (result.model_active === false) {
-                const statusBar = document.getElementById('hud-status');
-                if (statusBar) statusBar.textContent = '⚠️ Model YOLO tidak aktif — deteksi tidak berjalan';
-                if (statusBar) statusBar.style.color = 'var(--danger)';
+                // Cek apakah model YOLO aktif di server
+                if (result.model_active === false) {
+                    const statusBar = document.getElementById('hud-status');
+                    if (statusBar) statusBar.textContent = '⚠️ Model YOLO tidak aktif — deteksi tidak berjalan';
+                    if (statusBar) statusBar.style.color = 'var(--danger)';
+                }
             }
         } catch (e) {
             // Network error, silently continue
+        } finally {
+            isDetecting = false;
         }
     }, DETECT_INTERVAL_MS);
 }
