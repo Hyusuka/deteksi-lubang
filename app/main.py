@@ -63,14 +63,18 @@ init_db()
 # ──────────────────────────────────────────────
 # YOLO Model Loader
 # ──────────────────────────────────────────────
-YOLO_MODEL = None
-_model_loaded = False
-_model_error = None
-MODEL_PATH = os.path.join(os.path.dirname(__file__), '..', 'models', 'best.pt')
+MODEL_REALTIME = None
+_model_realtime_loaded = False
+_model_realtime_error = None
+MODEL_REALTIME_PATH = os.path.join(os.path.dirname(__file__), '..', 'models', 'best.pt')
 
-def load_model_lazy():
-    global YOLO_MODEL, _model_loaded, _model_error, np, cv2
-    if _model_loaded: return
+MODEL_UPLOAD = None
+_model_upload_loaded = False
+_model_upload_error = None
+MODEL_UPLOAD_PATH = os.path.join(os.path.dirname(__file__), '..', 'models', 'best(1).pt')
+
+def ensure_libs():
+    global np, cv2
     if np is None:
         import numpy as _np
         globals()['np'] = _np
@@ -78,29 +82,59 @@ def load_model_lazy():
         import cv2 as _cv2
         globals()['cv2'] = _cv2
 
-    resolved = os.path.abspath(MODEL_PATH)
-    logging.info(f"Mencari model YOLOv9 di: {resolved}")
+def load_realtime_model():
+    global MODEL_REALTIME, _model_realtime_loaded, _model_realtime_error
+    if _model_realtime_loaded: return
+    ensure_libs()
+
+    resolved = os.path.abspath(MODEL_REALTIME_PATH)
+    logging.info(f"Mencari model Real-time di: {resolved}")
 
     if not os.path.isfile(resolved):
-        _model_error = f"File model tidak ditemukan: {resolved}"
-        logging.error(_model_error)
-        # Jangan set _model_loaded=True agar bisa retry jika file muncul nanti
+        _model_realtime_error = f"File model tidak ditemukan: {resolved}"
+        logging.error(_model_realtime_error)
         return
 
     logging.info(f"File model ditemukan ({os.path.getsize(resolved) / 1e6:.1f} MB). Memuat...")
     try:
         from ultralytics import YOLO
-        YOLO_MODEL = YOLO(resolved)
+        MODEL_REALTIME = YOLO(resolved)
         dummy = np.zeros((640, 640, 3), dtype=np.uint8)
-        YOLO_MODEL(dummy, verbose=False)
-        _model_error = None
-        _model_loaded = True
-        logging.info("YOLOv9 model loaded successfully.")
+        MODEL_REALTIME(dummy, verbose=False)
+        _model_realtime_error = None
+        _model_realtime_loaded = True
+        logging.info("YOLOv9 Real-time model loaded successfully.")
     except Exception as e:
-        _model_error = f"Gagal load model: {e}"
-        YOLO_MODEL = None
-        logging.error(_model_error)
-        # _model_loaded tetap False agar bisa retry
+        _model_realtime_error = f"Gagal load model: {e}"
+        MODEL_REALTIME = None
+        logging.error(_model_realtime_error)
+
+def load_upload_model():
+    global MODEL_UPLOAD, _model_upload_loaded, _model_upload_error
+    if _model_upload_loaded: return
+    ensure_libs()
+
+    resolved = os.path.abspath(MODEL_UPLOAD_PATH)
+    logging.info(f"Mencari model Upload di: {resolved}")
+
+    if not os.path.isfile(resolved):
+        _model_upload_error = f"File model tidak ditemukan: {resolved}"
+        logging.error(_model_upload_error)
+        return
+
+    logging.info(f"File model ditemukan ({os.path.getsize(resolved) / 1e6:.1f} MB). Memuat...")
+    try:
+        from ultralytics import YOLO
+        MODEL_UPLOAD = YOLO(resolved)
+        dummy = np.zeros((640, 640, 3), dtype=np.uint8)
+        MODEL_UPLOAD(dummy, verbose=False)
+        _model_upload_error = None
+        _model_upload_loaded = True
+        logging.info("YOLOv9 Upload model loaded successfully.")
+    except Exception as e:
+        _model_upload_error = f"Gagal load model: {e}"
+        MODEL_UPLOAD = None
+        logging.error(_model_upload_error)
 
 # ──────────────────────────────────────────────
 # Helper: Gambar Overlay Segmentasi pada Frame
@@ -257,7 +291,7 @@ def sse_stream():
 
 @app.route('/api/detect-frame', methods=['POST'])
 def detect_frame():
-    load_model_lazy()
+    load_realtime_model()
     data = request.json
     if not data or 'frame' not in data:
         return jsonify({'error': 'No frame data'}), 400
@@ -281,8 +315,8 @@ def detect_frame():
     raw_detections = []
     
     total_boxes = 0
-    if YOLO_MODEL is not None:
-        results = YOLO_MODEL(frame, verbose=False, conf=0.05, imgsz=1280)
+    if MODEL_REALTIME is not None:
+        results = MODEL_REALTIME(frame, verbose=False, conf=0.05, imgsz=1280)
         for r in results:
             # Ambil data segmentasi mask (poligon kontur) jika tersedia
             masks_xy = r.masks.xy if r.masks is not None else []
@@ -352,7 +386,7 @@ def detect_frame():
         saved.append(record)
         broadcaster.broadcast(record)
 
-    return jsonify({'detections': detections, 'saved': saved, 'inference_ms': inference_ms, 'speed_kmh': speed_kmh, 'model_active': YOLO_MODEL is not None})
+    return jsonify({'detections': detections, 'saved': saved, 'inference_ms': inference_ms, 'speed_kmh': speed_kmh, 'model_active': MODEL_REALTIME is not None})
 
 @app.route('/api/potholes', methods=['GET'])
 def get_potholes():
@@ -397,14 +431,24 @@ def delete_pothole(pid):
 @app.route('/api/model-status', methods=['GET'])
 def model_status():
     """Status diagnostik model YOLO — untuk frontend dan debugging"""
-    resolved = os.path.abspath(MODEL_PATH)
+    load_realtime_model()
+    load_upload_model()
+    
+    rt_resolved = os.path.abspath(MODEL_REALTIME_PATH)
+    up_resolved = os.path.abspath(MODEL_UPLOAD_PATH)
+    
     return jsonify({
-        'model_active': YOLO_MODEL is not None,
-        'model_loaded': _model_loaded,
-        'model_path': resolved,
-        'model_file_exists': os.path.isfile(resolved),
-        'model_file_size_mb': round(os.path.getsize(resolved) / 1e6, 1) if os.path.isfile(resolved) else 0,
-        'error': _model_error
+        'model_realtime_loaded': _model_realtime_loaded,
+        'model_realtime_active': MODEL_REALTIME is not None,
+        'model_realtime_error': _model_realtime_error,
+        'model_realtime_file_exists': os.path.isfile(rt_resolved),
+        'model_realtime_file_size_mb': round(os.path.getsize(rt_resolved) / 1e6, 1) if os.path.isfile(rt_resolved) else 0,
+        
+        'model_upload_loaded': _model_upload_loaded,
+        'model_upload_active': MODEL_UPLOAD is not None,
+        'model_upload_error': _model_upload_error,
+        'model_upload_file_exists': os.path.isfile(up_resolved),
+        'model_upload_file_size_mb': round(os.path.getsize(up_resolved) / 1e6, 1) if os.path.isfile(up_resolved) else 0,
     })
 
 # ──────────────────────────────────────────────
@@ -420,7 +464,7 @@ def test_page():
 @app.route('/api/detect-image', methods=['POST'])
 def detect_image():
     """Deteksi lubang dari gambar yang di-upload (file upload)"""
-    load_model_lazy()
+    load_upload_model()
 
     if 'image' not in request.files:
         return jsonify({'error': 'Tidak ada file gambar'}), 400
@@ -444,9 +488,9 @@ def detect_image():
     t0 = time.time()
     detections = []
 
-    if YOLO_MODEL is not None:
+    if MODEL_UPLOAD is not None:
         # Gunakan imgsz lebih besar untuk gambar statis (lebih akurat untuk objek kecil/jauh)
-        results = YOLO_MODEL(frame, verbose=False, conf=conf_threshold, imgsz=1280)
+        results = MODEL_UPLOAD(frame, verbose=False, conf=conf_threshold, imgsz=1280)
         print(f"[detect-image] conf={conf_threshold}, frame={fw}x{fh}, boxes found: {sum(len(r.boxes) for r in results)}")
         for r in results:
             # Ambil data segmentasi mask (poligon kontur) jika tersedia
@@ -513,7 +557,7 @@ _video_jobs = {}
 @app.route('/api/detect-video', methods=['POST'])
 def detect_video():
     """Deteksi lubang dari video yang di-upload (proses frame-by-frame)"""
-    load_model_lazy()
+    load_upload_model()
 
     if 'video' not in request.files:
         return jsonify({'error': 'Tidak ada file video'}), 400
@@ -573,8 +617,8 @@ def detect_video():
                 if not ret:
                     break
 
-                if frame_idx % frame_skip == 0 and YOLO_MODEL is not None:
-                    results = YOLO_MODEL(frame, verbose=False, conf=conf_threshold)
+                if frame_idx % frame_skip == 0 and MODEL_UPLOAD is not None:
+                    results = MODEL_UPLOAD(frame, verbose=False, conf=conf_threshold)
                     frame_dets = []
                     for r in results:
                         # Ambil data segmentasi mask (poligon kontur) jika tersedia
