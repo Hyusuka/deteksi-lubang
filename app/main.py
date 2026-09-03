@@ -65,10 +65,11 @@ init_db()
 # ──────────────────────────────────────────────
 YOLO_MODEL = None
 _model_loaded = False
+_model_error = None
 MODEL_PATH = os.path.join(os.path.dirname(__file__), '..', 'models', 'best.pt')
 
 def load_model_lazy():
-    global YOLO_MODEL, _model_loaded, np, cv2
+    global YOLO_MODEL, _model_loaded, _model_error, np, cv2
     if _model_loaded: return
     if np is None:
         import numpy as _np
@@ -77,16 +78,29 @@ def load_model_lazy():
         import cv2 as _cv2
         globals()['cv2'] = _cv2
 
-    logging.info("Memulai pemuatan model YOLOv9 lokal...")
+    resolved = os.path.abspath(MODEL_PATH)
+    logging.info(f"Mencari model YOLOv9 di: {resolved}")
+
+    if not os.path.isfile(resolved):
+        _model_error = f"File model tidak ditemukan: {resolved}"
+        logging.error(_model_error)
+        # Jangan set _model_loaded=True agar bisa retry jika file muncul nanti
+        return
+
+    logging.info(f"File model ditemukan ({os.path.getsize(resolved) / 1e6:.1f} MB). Memuat...")
     try:
         from ultralytics import YOLO
-        YOLO_MODEL = YOLO(MODEL_PATH)
+        YOLO_MODEL = YOLO(resolved)
         dummy = np.zeros((640, 640, 3), dtype=np.uint8)
         YOLO_MODEL(dummy, verbose=False)
+        _model_error = None
+        _model_loaded = True
         logging.info("YOLOv9 model loaded successfully.")
     except Exception as e:
-        logging.error(f"Gagal load model: {e}")
-    _model_loaded = True
+        _model_error = f"Gagal load model: {e}"
+        YOLO_MODEL = None
+        logging.error(_model_error)
+        # _model_loaded tetap False agar bisa retry
 
 # ──────────────────────────────────────────────
 # Helper: Gambar Overlay Segmentasi pada Frame
@@ -338,7 +352,7 @@ def detect_frame():
         saved.append(record)
         broadcaster.broadcast(record)
 
-    return jsonify({'detections': detections, 'saved': saved, 'inference_ms': inference_ms, 'speed_kmh': speed_kmh})
+    return jsonify({'detections': detections, 'saved': saved, 'inference_ms': inference_ms, 'speed_kmh': speed_kmh, 'model_active': YOLO_MODEL is not None})
 
 @app.route('/api/potholes', methods=['GET'])
 def get_potholes():
@@ -379,6 +393,19 @@ def delete_pothole(pid):
     conn.commit()
     conn.close()
     return jsonify({'deleted': pid})
+
+@app.route('/api/model-status', methods=['GET'])
+def model_status():
+    """Status diagnostik model YOLO — untuk frontend dan debugging"""
+    resolved = os.path.abspath(MODEL_PATH)
+    return jsonify({
+        'model_active': YOLO_MODEL is not None,
+        'model_loaded': _model_loaded,
+        'model_path': resolved,
+        'model_file_exists': os.path.isfile(resolved),
+        'model_file_size_mb': round(os.path.getsize(resolved) / 1e6, 1) if os.path.isfile(resolved) else 0,
+        'error': _model_error
+    })
 
 # ──────────────────────────────────────────────
 # Halaman Uji Deteksi (Upload Gambar / Video)

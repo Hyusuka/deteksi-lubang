@@ -5,6 +5,7 @@
 *.pt
 *.onnx
 *.engine
+!models/best.pt
 
 # Database files
 *.db
@@ -27,7 +28,6 @@ static/snapshots/*
 .DS_Store
 Thumbs.db
 
-!pothole_yolov8.pt
-
 # Dokumentasi
 doc/
+

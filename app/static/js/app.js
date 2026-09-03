@@ -397,6 +397,13 @@ function startDetectionLoop() {
             if (result.saved && result.saved.length > 0) {
                 result.saved.forEach(det => triggerWarning(det));
             }
+
+            // Cek apakah model YOLO aktif di server
+            if (result.model_active === false) {
+                const statusBar = document.getElementById('hud-status');
+                if (statusBar) statusBar.textContent = '⚠️ Model YOLO tidak aktif — deteksi tidak berjalan';
+                if (statusBar) statusBar.style.color = 'var(--danger)';
+            }
         } catch (e) {
             // Network error, silently continue
         }
