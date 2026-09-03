@@ -58,6 +58,35 @@
                     <option value="">Memuat daftar kamera...</option>
                 </select>
             </div>
+
+            <!-- ═══ Sound Module Selector ═══ -->
+            <div class="sound-selector-wrapper">
+                <label class="sound-selector-label">🔊 Modul Suara Peringatan:</label>
+                <div class="sound-selector-grid">
+                    <div class="sound-card active" data-mode="bell" onclick="setAlertMode('bell')">
+                        <div class="sound-card-check">✓</div>
+                        <div class="sound-card-icon">🔔</div>
+                        <div class="sound-card-name">Bell Alert</div>
+                        <div class="sound-card-desc">Suara alarm bell sintetis</div>
+                        <button class="sound-preview-btn" onclick="event.stopPropagation(); previewSound('bell')" id="prev-bell">▶ Preview</button>
+                    </div>
+                    <div class="sound-card" data-mode="ai" onclick="setAlertMode('ai')">
+                        <div class="sound-card-check">✓</div>
+                        <div class="sound-card-icon">🤖</div>
+                        <div class="sound-card-name">Suara AI</div>
+                        <div class="sound-card-desc">Text-to-Speech Indonesia</div>
+                        <button class="sound-preview-btn" onclick="event.stopPropagation(); previewSound('ai')" id="prev-ai">▶ Preview</button>
+                    </div>
+                    <div class="sound-card" data-mode="silent" onclick="setAlertMode('silent')">
+                        <div class="sound-card-check">✓</div>
+                        <div class="sound-card-icon">🔕</div>
+                        <div class="sound-card-name">Silent</div>
+                        <div class="sound-card-desc">Visual & getaran saja</div>
+                        <button class="sound-preview-btn" onclick="event.stopPropagation(); previewSound('silent')" id="prev-silent">▶ Preview</button>
+                    </div>
+                </div>
+            </div>
+
             <p class="splash-hint" style="margin-top: 12px;">Pastikan GPS & Kamera diizinkan di browser Anda</p>
         </div>
     </div>
@@ -86,6 +115,10 @@
                     <div class="status-pill" id="pill-camera"><span class="dot green"></span> CAM</div>
                     <div class="status-pill" id="pill-gps"><span class="dot green"></span> GPS</div>
                     <div class="status-pill" id="pill-stab"><span class="dot green"></span> STAB</div>
+                    <div class="sound-mode-pill" id="sound-mode-pill" data-mode="bell" onclick="cycleAlertMode()" title="Tap untuk ganti mode suara">
+                        <span class="smp-icon" id="smp-icon">🔔</span>
+                        <span id="smp-label">BELL</span>
+                    </div>
                     <span class="badge" id="badge-fps">FPS: -- | --ms</span>
                 </div>
                 <div style="display:flex; gap:6px;">

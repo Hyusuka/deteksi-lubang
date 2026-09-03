@@ -629,3 +629,187 @@ html, body {
     padding: 14px; border-radius: 12px;
     width: 100%; text-align: center;
 }
+
+/* ══════════════════════════════════════════════════════
+   SOUND MODULE SELECTOR — Splash Screen
+   ══════════════════════════════════════════════════════ */
+.sound-selector-wrapper {
+    margin-top: 18px;
+    text-align: left;
+}
+.sound-selector-label {
+    font-size: 0.8rem;
+    color: var(--text2);
+    display: block;
+    margin-bottom: 8px;
+    text-align: center;
+}
+.sound-selector-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+}
+.sound-card {
+    position: relative;
+    background: var(--bg2);
+    border: 1.5px solid var(--border);
+    border-radius: 14px;
+    padding: 14px 8px 10px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.25s, box-shadow 0.25s, transform 0.15s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    -webkit-tap-highlight-color: transparent;
+}
+.sound-card:active {
+    transform: scale(0.97);
+}
+.sound-card.active {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15), 0 2px 12px rgba(37, 99, 235, 0.1);
+}
+.sound-card.active .sound-card-icon {
+    animation: soundPulse 2s ease-in-out infinite;
+}
+@keyframes soundPulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.12); }
+}
+.sound-card-icon {
+    font-size: 1.6rem;
+    line-height: 1;
+    transition: transform 0.2s;
+}
+.sound-card-name {
+    font-family: 'Outfit', sans-serif;
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--text);
+    line-height: 1.2;
+}
+.sound-card-desc {
+    font-size: 0.58rem;
+    color: var(--text2);
+    line-height: 1.3;
+}
+.sound-card-check {
+    position: absolute;
+    top: 6px; right: 6px;
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    background: var(--primary);
+    color: #fff;
+    font-size: 9px;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+}
+.sound-card.active .sound-card-check {
+    display: flex;
+}
+.sound-preview-btn {
+    margin-top: 4px;
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 3px 10px;
+    font-size: 0.6rem;
+    font-family: 'Inter', sans-serif;
+    font-weight: 500;
+    color: var(--primary);
+    cursor: pointer;
+    transition: background 0.2s, transform 0.1s;
+}
+.sound-preview-btn:active {
+    transform: scale(0.95);
+    background: var(--border);
+}
+.sound-preview-btn.playing {
+    background: var(--primary);
+    color: #fff;
+    border-color: var(--primary);
+}
+
+/* ── HUD Sound Mode Pill ── */
+.sound-mode-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    background: var(--glass);
+    padding: 2px 7px;
+    border-radius: 12px;
+    font-size: 0.55rem;
+    font-weight: 600;
+    color: var(--text);
+    border: 1px solid var(--border);
+    letter-spacing: 0.3px;
+    cursor: pointer;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    -webkit-tap-highlight-color: transparent;
+}
+.sound-mode-pill:active {
+    transform: scale(0.95);
+}
+.sound-mode-pill .smp-icon {
+    font-size: 0.7rem;
+    line-height: 1;
+}
+.sound-mode-pill[data-mode="bell"] {
+    border-color: var(--success);
+    box-shadow: 0 0 0 1px rgba(22, 163, 74, 0.1);
+}
+.sound-mode-pill[data-mode="ai"] {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 1px rgba(37, 99, 235, 0.1);
+}
+.sound-mode-pill[data-mode="silent"] {
+    border-color: var(--text2);
+    box-shadow: none;
+}
+
+/* ── Enhanced Flash Overlay per Mode ── */
+.flash-overlay.danger {
+    background: rgba(220, 38, 38, 0.2);
+    animation: flashPulse 0.5s ease-out;
+}
+.flash-overlay.warning {
+    background: rgba(217, 119, 6, 0.2);
+    animation: flashPulse 0.5s ease-out;
+}
+.flash-overlay.danger-bell {
+    background: transparent;
+    border: 6px solid rgba(220, 38, 38, 0.7);
+    animation: borderFlash 0.6s ease-out 3;
+}
+.flash-overlay.warning-bell {
+    background: transparent;
+    border: 4px solid rgba(217, 119, 6, 0.6);
+    animation: borderFlash 0.6s ease-out 2;
+}
+.flash-overlay.danger-silent {
+    background: radial-gradient(ellipse at center, rgba(220, 38, 38, 0.1) 0%, transparent 70%);
+    animation: subtleGlow 1.5s ease-out;
+}
+.flash-overlay.warning-silent {
+    background: radial-gradient(ellipse at center, rgba(217, 119, 6, 0.1) 0%, transparent 70%);
+    animation: subtleGlow 1.5s ease-out;
+}
+@keyframes flashPulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.5; }
+    100% { opacity: 1; }
+}
+@keyframes borderFlash {
+    0% { opacity: 1; }
+    50% { opacity: 0.3; }
+    100% { opacity: 1; }
+}
+@keyframes subtleGlow {
+    0% { opacity: 0; }
+    30% { opacity: 1; }
+    100% { opacity: 0; }
+}

@@ -16,6 +16,10 @@ let gpsLat = 0, gpsLon = 0, gpsSpeed = 0, gpsHeading = 0, gpsAccuracy = 0;
 // Stabilizer state (EMA anti-guncangan)
 let stabilizerEnabled = true;
 
+// Alert sound module state
+let alertMode = localStorage.getItem('alertMode') || 'bell'; // 'bell' | 'ai' | 'silent'
+let _audioCtx = null;
+
 // Detection settings
 const DETECT_INTERVAL_MS = 800;
 
@@ -28,6 +32,7 @@ document.addEventListener('DOMContentLoaded', () => {
     setupBottomSheet();
     registerServiceWorker();
     initCameraList();
+    initSoundSelector();
 
     // Splash screen launch button
     document.getElementById('btn-launch').addEventListener('click', launchApp);
@@ -563,59 +568,70 @@ function drawDetections(detections, vw, vh) {
 }
 
 // ═══════════════════════════════════════════════
-// 5. WARNING SYSTEM — Visual + Audio TTS
+// 5. WARNING SYSTEM — Multi-Mode (Bell / AI / Silent)
 // ═══════════════════════════════════════════════
-function triggerWarning(det) {
-    const flash = document.getElementById('flash-overlay');
-    const isMedium = det.severity === 'Medium';
-    const isLow = det.severity === 'Low';
 
-    // Flash screen
-    flash.className = 'flash-overlay ' + (isLow ? '' : isMedium ? 'warning' : 'danger');
-    setTimeout(() => { flash.className = 'flash-overlay'; }, 2000);
-
-    // Warning card
-    const radius = det.diameter / 2;
-    const vol = det.volume || Math.max(0.1, Math.round((0.5 * 3.14159 * Math.pow(radius, 2) * det.depth / 1000) * 10) / 10);
-
-    document.getElementById('warning-content').innerHTML = `
-        <div class="warning-danger ${isMedium ? 'medium' : ''}">
-            <h3>⚠️ LUBANG TERDETEKSI!</h3>
-            <p>${det.severity === 'High' ? 'BAHAYA TINGGI — Kurangi kecepatan segera!' :
-                 det.severity === 'Medium' ? 'Waspada — Lubang sedang di depan.' :
-                 'Lubang kecil terdeteksi.'}</p>
-            <div class="warn-grid" style="grid-template-columns: repeat(2, 1fr);">
-                <div class="warn-item"><span class="wl">Diameter</span><span class="wv" style="color:var(--warn)">${det.diameter} cm</span></div>
-                <div class="warn-item"><span class="wl">Kedalaman</span><span class="wv" style="color:var(--danger)">${det.depth} cm</span></div>
-                <div class="warn-item"><span class="wl">Volume</span><span class="wv" style="color:var(--cyan)">${vol} L</span></div>
-                <div class="warn-item"><span class="wl">Kecepatan</span><span class="wv">${det.speed} km/h</span></div>
-            </div>
-        </div>
-    `;
-
-    // Voice alert
-    speakAlert(det.severity, det.diameter, det.depth);
-
-    // Vibrate device
-    if ('vibrate' in navigator) {
-        if (det.severity === 'High') navigator.vibrate([300, 100, 300, 100, 500]);
-        else if (det.severity === 'Medium') navigator.vibrate([200, 100, 200]);
-        else navigator.vibrate(150);
+// ── 5.1 Bell Sound Engine (Web Audio API) ──
+function _getAudioCtx() {
+    if (!_audioCtx || _audioCtx.state === 'closed') {
+        _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     }
-
-    // Reset after 5s
-    setTimeout(resetWarning, 5000);
+    if (_audioCtx.state === 'suspended') {
+        _audioCtx.resume();
+    }
+    return _audioCtx;
 }
 
-function resetWarning() {
-    document.getElementById('warning-content').innerHTML = `
-        <div class="warning-safe">
-            <div class="safe-icon">✓</div>
-            <span>Jalur Aman</span>
-        </div>
-    `;
+function playBellAlert(severity) {
+    const ctx = _getAudioCtx();
+    const configs = {
+        'High':   { freq: 880, repeat: 3, duration: 0.28, gap: 0.12, volume: 0.7, type: 'sine' },
+        'Medium': { freq: 660, repeat: 2, duration: 0.22, gap: 0.15, volume: 0.5, type: 'sine' },
+        'Low':    { freq: 440, repeat: 1, duration: 0.18, gap: 0,    volume: 0.35, type: 'sine' }
+    };
+    const cfg = configs[severity] || configs['Low'];
+
+    for (let i = 0; i < cfg.repeat; i++) {
+        const startTime = ctx.currentTime + i * (cfg.duration + cfg.gap);
+
+        // Oscillator — bell tone
+        const osc = ctx.createOscillator();
+        osc.type = cfg.type;
+        osc.frequency.setValueAtTime(cfg.freq, startTime);
+        // Slight pitch bend down for bell character
+        osc.frequency.exponentialRampToValueAtTime(cfg.freq * 0.7, startTime + cfg.duration);
+
+        // Secondary harmonic for richer bell
+        const osc2 = ctx.createOscillator();
+        osc2.type = 'sine';
+        osc2.frequency.setValueAtTime(cfg.freq * 2.5, startTime);
+        osc2.frequency.exponentialRampToValueAtTime(cfg.freq * 1.8, startTime + cfg.duration);
+
+        // Gain envelope (ADSR-like)
+        const gain = ctx.createGain();
+        gain.gain.setValueAtTime(0, startTime);
+        gain.gain.linearRampToValueAtTime(cfg.volume, startTime + 0.01); // Attack
+        gain.gain.exponentialRampToValueAtTime(cfg.volume * 0.3, startTime + cfg.duration * 0.4); // Decay
+        gain.gain.exponentialRampToValueAtTime(0.001, startTime + cfg.duration); // Release
+
+        const gain2 = ctx.createGain();
+        gain2.gain.setValueAtTime(0, startTime);
+        gain2.gain.linearRampToValueAtTime(cfg.volume * 0.15, startTime + 0.01);
+        gain2.gain.exponentialRampToValueAtTime(0.001, startTime + cfg.duration * 0.6);
+
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc2.connect(gain2);
+        gain2.connect(ctx.destination);
+
+        osc.start(startTime);
+        osc.stop(startTime + cfg.duration + 0.05);
+        osc2.start(startTime);
+        osc2.stop(startTime + cfg.duration + 0.05);
+    }
 }
 
+// ── 5.2 AI Voice (TTS) ──
 function speakAlert(severity, diameter, depth) {
     if (!('speechSynthesis' in window)) return;
     window.speechSynthesis.cancel();
@@ -633,6 +649,197 @@ function speakAlert(severity, diameter, depth) {
     utt.lang = 'id-ID';
     utt.rate = 1.05;
     window.speechSynthesis.speak(utt);
+}
+
+// ── 5.3 triggerWarning — dispatches per alertMode ──
+function triggerWarning(det) {
+    const flash = document.getElementById('flash-overlay');
+    const isMedium = det.severity === 'Medium';
+    const isLow = det.severity === 'Low';
+    const isHigh = det.severity === 'High';
+
+    // ── Visual Flash (mode-specific styling) ──
+    let flashClass = 'flash-overlay';
+    if (!isLow) {
+        if (alertMode === 'bell') {
+            flashClass += isMedium ? ' warning-bell' : ' danger-bell';
+        } else if (alertMode === 'silent') {
+            flashClass += isMedium ? ' warning-silent' : ' danger-silent';
+        } else {
+            flashClass += isMedium ? ' warning' : ' danger';
+        }
+    }
+    flash.className = flashClass;
+    setTimeout(() => { flash.className = 'flash-overlay'; }, alertMode === 'silent' ? 3000 : 2000);
+
+    // ── Warning card (always shown) ──
+    const radius = det.diameter / 2;
+    const vol = det.volume || Math.max(0.1, Math.round((0.5 * 3.14159 * Math.pow(radius, 2) * det.depth / 1000) * 10) / 10);
+
+    const modeLabel = alertMode === 'bell' ? '🔔 Bell' : alertMode === 'ai' ? '🤖 AI' : '🔕 Silent';
+    document.getElementById('warning-content').innerHTML = `
+        <div class="warning-danger ${isMedium ? 'medium' : ''}">
+            <h3>⚠️ LUBANG TERDETEKSI! <span style="font-size:0.65rem;opacity:0.7;font-weight:400;">${modeLabel}</span></h3>
+            <p>${det.severity === 'High' ? 'BAHAYA TINGGI — Kurangi kecepatan segera!' :
+                 det.severity === 'Medium' ? 'Waspada — Lubang sedang di depan.' :
+                 'Lubang kecil terdeteksi.'}</p>
+            <div class="warn-grid" style="grid-template-columns: repeat(2, 1fr);">
+                <div class="warn-item"><span class="wl">Diameter</span><span class="wv" style="color:var(--warn)">${det.diameter} cm</span></div>
+                <div class="warn-item"><span class="wl">Kedalaman</span><span class="wv" style="color:var(--danger)">${det.depth} cm</span></div>
+                <div class="warn-item"><span class="wl">Volume</span><span class="wv" style="color:var(--cyan)">${vol} L</span></div>
+                <div class="warn-item"><span class="wl">Kecepatan</span><span class="wv">${det.speed} km/h</span></div>
+            </div>
+        </div>
+    `;
+
+    // ── Audio alert (per mode) ──
+    if (alertMode === 'bell') {
+        playBellAlert(det.severity);
+    } else if (alertMode === 'ai') {
+        speakAlert(det.severity, det.diameter, det.depth);
+    }
+    // 'silent' → no audio
+
+    // ── Haptic vibration (all modes, varied intensity) ──
+    if ('vibrate' in navigator) {
+        if (alertMode === 'silent') {
+            // Silent mode: lighter haptic
+            if (isHigh) navigator.vibrate([100, 50, 100]);
+            else if (isMedium) navigator.vibrate(80);
+            else navigator.vibrate(40);
+        } else {
+            // Normal haptic
+            if (isHigh) navigator.vibrate([300, 100, 300, 100, 500]);
+            else if (isMedium) navigator.vibrate([200, 100, 200]);
+            else navigator.vibrate(150);
+        }
+    }
+
+    // Reset after 5s
+    setTimeout(resetWarning, 5000);
+}
+
+function resetWarning() {
+    document.getElementById('warning-content').innerHTML = `
+        <div class="warning-safe">
+            <div class="safe-icon">✓</div>
+            <span>Jalur Aman</span>
+        </div>
+    `;
+}
+
+// ═══════════════════════════════════════════════
+// 5.4 SOUND SELECTOR UI — Splash Screen & HUD
+// ═══════════════════════════════════════════════
+const ALERT_MODES = ['bell', 'ai', 'silent'];
+const ALERT_MODE_META = {
+    bell:   { icon: '🔔', label: 'BELL',   toastText: 'Mode Bell Alert Aktif' },
+    ai:     { icon: '🤖', label: 'AI',     toastText: 'Mode Suara AI Aktif' },
+    silent: { icon: '🔕', label: 'MUTE',   toastText: 'Mode Silent (Visual Only)' }
+};
+
+function initSoundSelector() {
+    // Restore saved mode from localStorage
+    const saved = localStorage.getItem('alertMode');
+    if (saved && ALERT_MODES.includes(saved)) {
+        alertMode = saved;
+    } else {
+        alertMode = 'bell';
+    }
+    _updateSoundSelectorUI();
+    _updateHUDSoundPill();
+}
+
+function setAlertMode(mode) {
+    if (!ALERT_MODES.includes(mode)) return;
+    alertMode = mode;
+    localStorage.setItem('alertMode', mode);
+    _updateSoundSelectorUI();
+    _updateHUDSoundPill();
+
+    // Haptic feedback on selection
+    if ('vibrate' in navigator) navigator.vibrate(30);
+}
+
+function _updateSoundSelectorUI() {
+    // Update splash screen cards
+    document.querySelectorAll('.sound-card').forEach(card => {
+        if (card.dataset.mode === alertMode) {
+            card.classList.add('active');
+        } else {
+            card.classList.remove('active');
+        }
+    });
+}
+
+function _updateHUDSoundPill() {
+    const pill = document.getElementById('sound-mode-pill');
+    const icon = document.getElementById('smp-icon');
+    const label = document.getElementById('smp-label');
+    if (!pill) return;
+
+    const meta = ALERT_MODE_META[alertMode];
+    pill.setAttribute('data-mode', alertMode);
+    if (icon) icon.textContent = meta.icon;
+    if (label) label.textContent = meta.label;
+}
+
+function cycleAlertMode() {
+    const idx = ALERT_MODES.indexOf(alertMode);
+    const nextIdx = (idx + 1) % ALERT_MODES.length;
+    const nextMode = ALERT_MODES[nextIdx];
+    setAlertMode(nextMode);
+
+    // Show toast
+    const meta = ALERT_MODE_META[nextMode];
+    showToast(meta.icon, meta.toastText, 'toast-on');
+
+    // Haptic
+    if ('vibrate' in navigator) navigator.vibrate(50);
+}
+
+// ── Preview sounds for splash screen ──
+let _previewTimeout = null;
+function previewSound(mode) {
+    // Clear any previous preview
+    if (_previewTimeout) clearTimeout(_previewTimeout);
+    document.querySelectorAll('.sound-preview-btn').forEach(b => b.classList.remove('playing'));
+
+    const btn = document.getElementById('prev-' + mode);
+
+    if (mode === 'bell') {
+        if (btn) { btn.classList.add('playing'); btn.textContent = '🔊 Playing...'; }
+        playBellAlert('High');
+        // Haptic demo
+        if ('vibrate' in navigator) navigator.vibrate([200, 80, 200]);
+        _previewTimeout = setTimeout(() => {
+            if (btn) { btn.classList.remove('playing'); btn.textContent = '▶ Preview'; }
+        }, 1500);
+
+    } else if (mode === 'ai') {
+        if (btn) { btn.classList.add('playing'); btn.textContent = '🔊 Playing...'; }
+        if ('speechSynthesis' in window) {
+            window.speechSynthesis.cancel();
+            const utt = new SpeechSynthesisUtterance('Peringatan! Lubang besar terdeteksi di depan. Segera kurangi kecepatan!');
+            utt.lang = 'id-ID';
+            utt.rate = 1.05;
+            utt.onend = () => {
+                if (btn) { btn.classList.remove('playing'); btn.textContent = '▶ Preview'; }
+            };
+            window.speechSynthesis.speak(utt);
+        }
+        if ('vibrate' in navigator) navigator.vibrate([300, 100, 300]);
+        _previewTimeout = setTimeout(() => {
+            if (btn) { btn.classList.remove('playing'); btn.textContent = '▶ Preview'; }
+        }, 5000);
+
+    } else if (mode === 'silent') {
+        if (btn) { btn.classList.add('playing'); btn.textContent = '📳 Vibrating...'; }
+        if ('vibrate' in navigator) navigator.vibrate([80, 40, 80]);
+        _previewTimeout = setTimeout(() => {
+            if (btn) { btn.classList.remove('playing'); btn.textContent = '▶ Preview'; }
+        }, 1000);
+    }
 }
 
 // ═══════════════════════════════════════════════
