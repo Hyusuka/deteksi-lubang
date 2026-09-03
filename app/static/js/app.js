@@ -21,7 +21,7 @@ let alertMode = localStorage.getItem('alertMode') || 'bell'; // 'bell' | 'ai' | 
 let _audioCtx = null;
 
 // Detection settings
-const DETECT_INTERVAL_MS = 800;
+const DETECT_INTERVAL_MS = 150;
 
 
 // ── Init ──
