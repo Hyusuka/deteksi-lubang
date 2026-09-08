@@ -121,14 +121,10 @@
                     </div>
                     <span class="badge" id="badge-fps">FPS: -- | --ms</span>
                 </div>
-                <div style="display:flex; gap:6px;">
-                    <button class="btn-stabilizer-hud stab-on" id="btn-stabilizer">🔒 Stabilizer ON</button>
-                    <a href="/gallery" style="
-                        background:var(--bg3); border:1px solid var(--border); color:var(--primary);
-                        padding:4px 8px; border-radius:6px; font-size:9px;
-                        cursor:pointer; font-family:Outfit,sans-serif; text-decoration:none; display:flex; align-items:center;
-                    ">📸 Galeri</a>
-                    <button class="btn-stop-hud" id="btn-stop">■ STOP</button>
+                <div class="hud-btn-group">
+                    <button class="btn-stabilizer-hud stab-on" id="btn-stabilizer"><span class="btn-txt">🔒 Stabilizer ON</span></button>
+                    <a href="/gallery" class="btn-gallery-hud">📸 <span class="btn-txt">Galeri</span></a>
+                    <button class="btn-stop-hud" id="btn-stop">■ <span class="btn-txt">STOP</span></button>
                 </div>
             </div>
 

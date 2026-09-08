@@ -42,11 +42,15 @@ html, body {
     position: fixed; inset: 0; z-index: 1000;
     background: var(--bg);
     display: flex; align-items: center; justify-content: center;
-    padding: 24px;
+    padding: max(16px, env(safe-area-inset-top, 16px)) max(16px, env(safe-area-inset-right, 16px)) max(16px, env(safe-area-inset-bottom, 16px)) max(16px, env(safe-area-inset-left, 16px));
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
 }
 .splash-content {
     text-align: center;
-    max-width: 360px;
+    width: 100%;
+    max-width: 380px;
+    margin: auto 0;
 }
 .splash-icon {
     font-size: 64px;
@@ -144,6 +148,7 @@ html, body {
 .camera-fullscreen canvas {
     position: absolute; inset: 0;
     width: 100%; height: 100%;
+    object-fit: cover;
     pointer-events: none;
 }
 
@@ -167,21 +172,33 @@ html, body {
     position: absolute; inset: 0;
     z-index: 10;
     pointer-events: none;
-    padding-top: calc(var(--safe-top) + 8px);
+    padding-top: env(safe-area-inset-top, 0px);
 }
 .mobile-hud > * { pointer-events: auto; }
 
 /* Top bar */
 .hud-topbar {
     display: flex; justify-content: space-between; align-items: center;
-    padding: 8px 12px;
+    padding: 6px 12px;
+    gap: 8px;
+    flex-wrap: wrap;
+    background: rgba(10, 13, 18, 0.45);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
 }
 .hud-pill-row {
-    display: flex; gap: 6px; align-items: center;
+    display: flex; gap: 4px; align-items: center; flex-wrap: wrap;
+}
+.hud-btn-group {
+    display: flex; gap: 6px; align-items: center; flex-shrink: 0;
 }
 .status-pill {
     display: inline-flex; align-items: center; gap: 4px;
     background: var(--glass);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
     padding: 2px 6px;
     border-radius: 12px;
     font-size: 0.55rem;
@@ -203,7 +220,9 @@ html, body {
 
 .badge {
     background: var(--glass);
-    padding: 2px 4px;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    padding: 2px 5px;
     border-radius: 6px;
     font-size: 0.55rem;
     font-family: var(--mono);
@@ -220,6 +239,25 @@ html, body {
     border: none; border-radius: 8px;
     cursor: pointer;
     letter-spacing: 0.5px;
+    display: flex; align-items: center; gap: 3px;
+    white-space: nowrap;
+}
+
+.btn-gallery-hud {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    color: var(--primary);
+    padding: 4px 8px;
+    border-radius: 8px;
+    font-size: 0.6rem;
+    font-weight: 600;
+    cursor: pointer;
+    font-family: Outfit, sans-serif;
+    text-decoration: none;
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    white-space: nowrap;
 }
 
 /* Stabilizer toggle button */
@@ -232,6 +270,7 @@ html, body {
     letter-spacing: 0.3px;
     transition: background 0.2s, color 0.2s;
     white-space: nowrap;
+    display: flex; align-items: center; gap: 3px;
 }
 .btn-stabilizer-hud.stab-on {
     background: var(--success);
@@ -284,13 +323,17 @@ html, body {
 /* Speed display — small center */
 .hud-speed-big {
     position: absolute;
-    top: 50px; right: 12px;
+    top: calc(var(--safe-top) + 54px); right: 12px;
     text-align: center;
     background: var(--glass);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     border: 1px solid var(--border);
     border-radius: 10px;
     padding: 6px 10px;
     min-width: 60px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    z-index: 12;
 }
 .speed-number {
     font-family: 'Outfit', sans-serif;
@@ -310,8 +353,10 @@ html, body {
 /* GPS info — top left below topbar */
 .hud-gps-info {
     position: absolute;
-    top: 50px; left: 12px;
+    top: calc(var(--safe-top) + 54px); left: 12px;
     background: var(--glass);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     border: 1px solid var(--border);
     border-radius: 8px;
     padding: 4px 8px;
@@ -319,30 +364,42 @@ html, body {
     font-size: 0.55rem;
     color: var(--text);
     line-height: 1.4;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    z-index: 12;
 }
 
 /* Status message bar */
 .hud-status-bar {
     position: absolute;
-    bottom: 80px; left: 50%; transform: translateX(-50%);
+    bottom: max(75px, calc(var(--safe-bottom) + 75px)); left: 50%; transform: translateX(-50%);
     text-align: center;
     background: var(--glass);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     border: 1px solid var(--border);
     border-radius: 20px;
-    padding: 4px 10px;
+    padding: 4px 12px;
     font-size: 0.65rem;
+    font-weight: 500;
     color: var(--text);
     white-space: nowrap;
+    max-width: 90vw;
+    overflow: hidden;
+    text-overflow: ellipsis;
     z-index: 15;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
 }
 
 /* Warning card */
 .warning-card-mobile {
     position: absolute;
-    bottom: 110px; left: 12px; right: 12px;
+    bottom: max(108px, calc(var(--safe-bottom) + 108px)); left: 12px; right: 12px;
+    max-width: 440px;
+    margin: 0 auto;
     border-radius: 10px;
     overflow: hidden;
     z-index: 15;
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.25);
 }
 .warning-safe {
     display: flex; align-items: center; justify-content: center; gap: 6px;
@@ -812,4 +869,161 @@ html, body {
     0% { opacity: 0; }
     30% { opacity: 1; }
     100% { opacity: 0; }
+}
+
+/* ══════════════════════════════════════════════════════
+   MEDIA QUERIES — Mobile Responsiveness
+   ══════════════════════════════════════════════════════ */
+
+/* Screen width <= 480px (Standard & small mobile phones) */
+@media (max-width: 480px) {
+    .hud-topbar {
+        padding: 5px 8px;
+        gap: 6px;
+    }
+    .status-pill {
+        padding: 2px 5px;
+        font-size: 0.5rem;
+    }
+    .badge {
+        font-size: 0.5rem;
+        padding: 2px 4px;
+    }
+    .sound-mode-pill {
+        font-size: 0.5rem;
+        padding: 2px 5px;
+    }
+    .btn-stabilizer-hud, .btn-gallery-hud, .btn-stop-hud {
+        font-size: 0.55rem;
+        padding: 4px 6px;
+    }
+    .hud-speed-big {
+        top: calc(var(--safe-top) + 65px);
+        right: 8px;
+        padding: 4px 8px;
+        min-width: 52px;
+    }
+    .speed-number {
+        font-size: 1.35rem;
+    }
+    .hud-gps-info {
+        top: calc(var(--safe-top) + 65px);
+        left: 8px;
+        font-size: 0.5rem;
+        padding: 3px 6px;
+    }
+    .hud-status-bar {
+        bottom: calc(var(--safe-bottom) + 75px);
+        font-size: 0.6rem;
+        padding: 3px 10px;
+    }
+    .warning-card-mobile {
+        bottom: calc(var(--safe-bottom) + 105px);
+        left: 8px;
+        right: 8px;
+    }
+    .warning-danger {
+        padding: 10px 12px;
+    }
+    .warning-danger h3 {
+        font-size: 0.85rem;
+    }
+    .sound-selector-grid {
+        gap: 6px;
+    }
+    .sound-card {
+        padding: 10px 4px 8px;
+    }
+    .sound-card-name {
+        font-size: 0.65rem;
+    }
+    .sound-card-desc {
+        font-size: 0.52rem;
+    }
+}
+
+/* Extra small screens <= 360px (e.g. iPhone SE 1st gen, small Androids) */
+@media (max-width: 360px) {
+    .btn-txt {
+        display: none;
+    }
+    .btn-stabilizer-hud {
+        padding: 4px 6px;
+    }
+    .hud-pill-row {
+        gap: 3px;
+    }
+    .status-pill {
+        font-size: 0.48rem;
+    }
+    .badge {
+        display: none; /* Hide FPS badge on ultra-narrow screens */
+    }
+    .sound-selector-grid {
+        grid-template-columns: 1fr;
+    }
+    .sound-card {
+        flex-direction: row;
+        justify-content: flex-start;
+        padding: 8px 12px;
+    }
+    .sound-card-check {
+        top: 50%;
+        transform: translateY(-50%);
+        right: 12px;
+    }
+}
+
+/* Landscape Mode for mobile phones */
+@media (orientation: landscape) and (max-height: 500px) {
+    .splash-content {
+        max-width: 520px;
+        padding: 12px 0;
+    }
+    .splash-icon {
+        font-size: 36px;
+        margin-bottom: 8px;
+    }
+    .splash-content h1 {
+        font-size: 1.3rem;
+    }
+    .splash-sub {
+        margin-bottom: 12px;
+    }
+    .splash-requirement {
+        margin-bottom: 14px;
+        padding: 10px;
+    }
+    .btn-start-main {
+        padding: 10px 24px;
+        font-size: 0.95rem;
+    }
+    .hud-topbar {
+        padding: 4px 12px;
+    }
+    .hud-speed-big {
+        top: 40px;
+        right: 12px;
+        padding: 2px 8px;
+    }
+    .speed-number {
+        font-size: 1.2rem;
+    }
+    .hud-gps-info {
+        top: 40px;
+        left: 12px;
+    }
+    .hud-status-bar {
+        bottom: 50px;
+        font-size: 0.55rem;
+    }
+    .warning-card-mobile {
+        bottom: 50px;
+        left: 12px;
+        right: auto;
+        width: 320px;
+    }
+    .bottom-sheet {
+        max-height: 80vh;
+    }
 }
