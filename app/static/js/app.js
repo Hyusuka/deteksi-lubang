@@ -450,11 +450,11 @@ function toggleStabilizer() {
     const btn = document.getElementById('btn-stabilizer');
     if (btn) {
         if (stabilizerEnabled) {
-            btn.innerHTML = '🔒 Stabilizer ON';
+            btn.innerHTML = '🔒 <span class="btn-txt">STAB</span>';
             btn.classList.remove('stab-off');
             btn.classList.add('stab-on');
         } else {
-            btn.innerHTML = '🔓 Stabilizer OFF';
+            btn.innerHTML = '🔓 <span class="btn-txt">OFF</span>';
             btn.classList.remove('stab-on');
             btn.classList.add('stab-off');
         }

@@ -119,37 +119,40 @@
                         <span class="smp-icon" id="smp-icon">🔔</span>
                         <span id="smp-label">BELL</span>
                     </div>
-                    <span class="badge" id="badge-fps">FPS: -- | --ms</span>
                 </div>
                 <div class="hud-btn-group">
-                    <button class="btn-stabilizer-hud stab-on" id="btn-stabilizer"><span class="btn-txt">🔒 Stabilizer ON</span></button>
+                    <button class="btn-stabilizer-hud stab-on" id="btn-stabilizer">🔒 <span class="btn-txt">STAB</span></button>
                     <a href="/gallery" class="btn-gallery-hud">📸 <span class="btn-txt">Galeri</span></a>
                     <button class="btn-stop-hud" id="btn-stop">■ <span class="btn-txt">STOP</span></button>
                 </div>
             </div>
 
-            <!-- Speed display (large, center top) -->
-            <div class="hud-speed-big">
-                <div class="speed-number" id="hud-speed-val">0</div>
-                <div class="speed-unit">km/h</div>
+            <!-- Sub bar for GPS coords, FPS, and Speed display -->
+            <div class="hud-subbar">
+                <div class="hud-gps-info">
+                    <div id="hud-lat">Lat: --</div>
+                    <div id="hud-lon">Lon: --</div>
+                </div>
+                <span class="badge" id="badge-fps">FPS: -- | --ms</span>
+                <div class="hud-speed-big">
+                    <div class="speed-number" id="hud-speed-val">0</div>
+                    <div class="speed-unit">km/h</div>
+                </div>
             </div>
 
-            <!-- GPS coords (small, top left) -->
-            <div class="hud-gps-info">
-                <div id="hud-lat">Lat: --</div>
-                <div id="hud-lon">Lon: --</div>
-            </div>
+            <!-- Bottom Stack (Warning Card + Status Bar stacked vertically) -->
+            <div class="hud-bottom-stack">
+                <!-- Warning card (appears when pothole detected) -->
+                <div class="warning-card-mobile" id="warning-card">
+                    <div class="warning-safe" id="warning-content">
+                        <div class="safe-icon">✓</div>
+                        <span>Jalur Aman</span>
+                    </div>
+                </div>
 
-            <!-- Status message (bottom center) -->
-            <div class="hud-status-bar" id="hud-status">
-                Mendeteksi lubang jalan...
-            </div>
-
-            <!-- Warning card (appears when pothole detected) -->
-            <div class="warning-card-mobile" id="warning-card">
-                <div class="warning-safe" id="warning-content">
-                    <div class="safe-icon">✓</div>
-                    <span>Jalur Aman</span>
+                <!-- Status message -->
+                <div class="hud-status-bar" id="hud-status">
+                    Mendeteksi lubang jalan...
                 </div>
             </div>
         </div>

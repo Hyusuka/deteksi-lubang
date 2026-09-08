@@ -320,40 +320,19 @@ html, body {
     font-size: 1.1rem;
 }
 
-/* Speed display — small center */
-.hud-speed-big {
-    position: absolute;
-    top: calc(var(--safe-top) + 54px); right: 12px;
-    text-align: center;
-    background: var(--glass);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    padding: 6px 10px;
-    min-width: 60px;
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
-    z-index: 12;
+/* Sub bar — GPS info, FPS badge, Speedometer */
+.hud-subbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding: 6px 12px;
+    pointer-events: none;
 }
-.speed-number {
-    font-family: 'Outfit', sans-serif;
-    font-size: 1.6rem;
-    font-weight: 800;
-    color: var(--text);
-    line-height: 1;
-}
-.speed-unit {
-    font-size: 0.6rem;
-    color: var(--text2);
-    font-weight: 600;
-    letter-spacing: 0.5px;
-    text-transform: uppercase;
+.hud-subbar > * {
+    pointer-events: auto;
 }
 
-/* GPS info — top left below topbar */
 .hud-gps-info {
-    position: absolute;
-    top: calc(var(--safe-top) + 54px); left: 12px;
     background: var(--glass);
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);
@@ -365,13 +344,60 @@ html, body {
     color: var(--text);
     line-height: 1.4;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
-    z-index: 12;
 }
 
-/* Status message bar */
-.hud-status-bar {
+.hud-speed-big {
+    text-align: center;
+    background: var(--glass);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 4px 10px;
+    min-width: 56px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+}
+.speed-number {
+    font-family: 'Outfit', sans-serif;
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--text);
+    line-height: 1;
+}
+.speed-unit {
+    font-size: 0.55rem;
+    color: var(--text2);
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+}
+
+/* Bottom Stack — Warning card + Status message stacked vertically */
+.hud-bottom-stack {
     position: absolute;
-    bottom: max(75px, calc(var(--safe-bottom) + 75px)); left: 50%; transform: translateX(-50%);
+    bottom: max(95px, calc(var(--safe-bottom) + 95px));
+    left: 12px;
+    right: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    z-index: 15;
+    pointer-events: none;
+}
+.hud-bottom-stack > * {
+    pointer-events: auto;
+}
+
+.warning-card-mobile {
+    width: 100%;
+    max-width: 440px;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.25);
+}
+
+.hud-status-bar {
     text-align: center;
     background: var(--glass);
     backdrop-filter: blur(12px);
@@ -386,20 +412,7 @@ html, body {
     max-width: 90vw;
     overflow: hidden;
     text-overflow: ellipsis;
-    z-index: 15;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
-}
-
-/* Warning card */
-.warning-card-mobile {
-    position: absolute;
-    bottom: max(108px, calc(var(--safe-bottom) + 108px)); left: 12px; right: 12px;
-    max-width: 440px;
-    margin: 0 auto;
-    border-radius: 10px;
-    overflow: hidden;
-    z-index: 15;
-    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.25);
 }
 .warning-safe {
     display: flex; align-items: center; justify-content: center; gap: 6px;
@@ -879,48 +892,53 @@ html, body {
 @media (max-width: 480px) {
     .hud-topbar {
         padding: 5px 8px;
-        gap: 6px;
+        gap: 4px;
+    }
+    .hud-pill-row {
+        gap: 3px;
+    }
+    .hud-btn-group {
+        gap: 4px;
     }
     .status-pill {
-        padding: 2px 5px;
-        font-size: 0.5rem;
+        padding: 2px 4px;
+        font-size: 0.48rem;
     }
     .badge {
-        font-size: 0.5rem;
+        font-size: 0.48rem;
         padding: 2px 4px;
     }
     .sound-mode-pill {
-        font-size: 0.5rem;
-        padding: 2px 5px;
+        font-size: 0.48rem;
+        padding: 2px 4px;
     }
     .btn-stabilizer-hud, .btn-gallery-hud, .btn-stop-hud {
-        font-size: 0.55rem;
-        padding: 4px 6px;
-    }
-    .hud-speed-big {
-        top: calc(var(--safe-top) + 65px);
-        right: 8px;
-        padding: 4px 8px;
-        min-width: 52px;
-    }
-    .speed-number {
-        font-size: 1.35rem;
-    }
-    .hud-gps-info {
-        top: calc(var(--safe-top) + 65px);
-        left: 8px;
-        font-size: 0.5rem;
+        font-size: 0.52rem;
         padding: 3px 6px;
     }
-    .hud-status-bar {
-        bottom: calc(var(--safe-bottom) + 75px);
-        font-size: 0.6rem;
-        padding: 3px 10px;
+    .hud-subbar {
+        padding: 4px 8px;
     }
-    .warning-card-mobile {
-        bottom: calc(var(--safe-bottom) + 105px);
+    .hud-speed-big {
+        padding: 3px 6px;
+        min-width: 48px;
+    }
+    .speed-number {
+        font-size: 1.25rem;
+    }
+    .hud-gps-info {
+        font-size: 0.48rem;
+        padding: 3px 6px;
+    }
+    .hud-bottom-stack {
+        bottom: max(90px, calc(var(--safe-bottom) + 90px));
         left: 8px;
         right: 8px;
+        gap: 6px;
+    }
+    .hud-status-bar {
+        font-size: 0.6rem;
+        padding: 3px 10px;
     }
     .warning-danger {
         padding: 10px 12px;
@@ -947,14 +965,8 @@ html, body {
     .btn-txt {
         display: none;
     }
-    .btn-stabilizer-hud {
-        padding: 4px 6px;
-    }
-    .hud-pill-row {
-        gap: 3px;
-    }
-    .status-pill {
-        font-size: 0.48rem;
+    .btn-stabilizer-hud, .btn-gallery-hud, .btn-stop-hud {
+        padding: 3px 5px;
     }
     .badge {
         display: none; /* Hide FPS badge on ultra-narrow screens */
@@ -1001,24 +1013,14 @@ html, body {
     .hud-topbar {
         padding: 4px 12px;
     }
-    .hud-speed-big {
-        top: 40px;
-        right: 12px;
-        padding: 2px 8px;
+    .hud-subbar {
+        padding: 4px 12px;
     }
     .speed-number {
-        font-size: 1.2rem;
+        font-size: 1.1rem;
     }
-    .hud-gps-info {
-        top: 40px;
-        left: 12px;
-    }
-    .hud-status-bar {
-        bottom: 50px;
-        font-size: 0.55rem;
-    }
-    .warning-card-mobile {
-        bottom: 50px;
+    .hud-bottom-stack {
+        bottom: 45px;
         left: 12px;
         right: auto;
         width: 320px;
