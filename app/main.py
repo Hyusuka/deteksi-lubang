@@ -11,6 +11,7 @@ import tempfile
 import shutil
 from flask import Flask, render_template, jsonify, request, Response, send_from_directory
 from flask_cors import CORS
+from werkzeug.exceptions import HTTPException
 
 np = None
 cv2 = None
@@ -71,7 +72,7 @@ MODEL_REALTIME_PATH = os.path.join(os.path.dirname(__file__), '..', 'models', 'b
 MODEL_UPLOAD = None
 _model_upload_loaded = False
 _model_upload_error = None
-MODEL_UPLOAD_PATH = os.path.join(os.path.dirname(__file__), '..', 'models', 'best(1).pt')
+MODEL_UPLOAD_PATH = os.path.join(os.path.dirname(__file__), '..', 'models', 'best.pt')
 
 def ensure_libs():
     global np, cv2
@@ -135,6 +136,35 @@ def load_upload_model():
         _model_upload_error = f"Gagal load model: {e}"
         MODEL_UPLOAD = None
         logging.error(_model_upload_error)
+
+# ──────────────────────────────────────────────
+# Helper: Filter Overlapping Boxes
+# ──────────────────────────────────────────────
+def filter_overlapping_boxes(detections):
+    # Urutkan berdasarkan area (terbesar ke terkecil) agar kotak besar yang mencakup area luas
+    # tidak terhapus oleh kotak kecil di dalamnya yang kebetulan memiliki confidence lebih tinggi.
+    detections = sorted(detections, key=lambda x: (x['x2'] - x['x1']) * (x['y2'] - x['y1']), reverse=True)
+    filtered = []
+    for det in detections:
+        is_inside = False
+        for f_det in filtered:
+            # Cek apakah saling tumpang tindih berlebihan (IoU tinggi atau satu di dalam yang lain)
+            xA = max(det['x1'], f_det['x1'])
+            yA = max(det['y1'], f_det['y1'])
+            xB = min(det['x2'], f_det['x2'])
+            yB = min(det['y2'], f_det['y2'])
+            interArea = max(0, xB - xA) * max(0, yB - yA)
+            
+            boxAArea = (det['x2'] - det['x1']) * (det['y2'] - det['y1'])
+            boxBArea = (f_det['x2'] - f_det['x1']) * (f_det['y2'] - f_det['y1'])
+            
+            # Jika area irisan lebih dari 50% dari salah satu kotak, anggap double
+            if interArea > 0.5 * min(boxAArea, boxBArea):
+                is_inside = True
+                break
+        if not is_inside:
+            filtered.append(det)
+    return filtered
 
 # ──────────────────────────────────────────────
 # Helper: Gambar Overlay Segmentasi pada Frame
@@ -260,9 +290,9 @@ def estimate_pothole_dimensions(bw, fw, cls_name):
         
     depth_cm = max(2.0, min(25.0, round(diameter_cm * base_ratio, 1)))
     
-    if depth_cm >= 12.0: severity = 'High'
-    elif depth_cm >= 6.0: severity = 'Medium'
-    else: severity = 'Low'
+    if depth_cm >= 12.0: severity = 'Besar'
+    elif depth_cm >= 6.0: severity = 'Sedang'
+    else: severity = 'Kecil'
         
     return severity, diameter_cm, depth_cm, calculate_volume(diameter_cm, depth_cm)
 
@@ -316,7 +346,7 @@ def detect_frame():
     
     total_boxes = 0
     if MODEL_REALTIME is not None:
-        results = MODEL_REALTIME(frame, verbose=False, conf=0.05, imgsz=1280)
+        results = MODEL_REALTIME(frame, verbose=False, conf=0.90, imgsz=1280)
         for r in results:
             # Ambil data segmentasi mask (poligon kontur) jika tersedia
             masks_xy = r.masks.xy if r.masks is not None else []
@@ -331,6 +361,9 @@ def detect_frame():
                 if idx < len(masks_xy):
                     seg_points = [[int(p[0]), int(p[1])] for p in masks_xy[idx]]
                 raw_detections.append({'x1': x1, 'y1': y1, 'x2': x2, 'y2': y2, 'confidence': round(conf, 3), 'class': cls_name, 'segmentation': seg_points})
+
+    # Filter overlapping raw detections first
+    raw_detections = filter_overlapping_boxes(raw_detections)
 
     # Terapkan Anti-Guncangan pada Bounding Box (jika stabilizer aktif)
     if use_stabilizer:
@@ -353,13 +386,13 @@ def detect_frame():
         snap_path = os.path.join(SNAPSHOT_DIR, snap_name)
         snap_frame = frame.copy()
 
-        color = (0, 0, 255) if severity == 'High' else (0, 165, 255) if severity == 'Medium' else (0, 255, 0)
+        color = (0, 0, 255) if severity == 'Besar' else (0, 165, 255) if severity == 'Sedang' else (0, 255, 0)
         # Gambar segmentasi mask (poligon semi-transparan) di dalam bounding box
         seg_points = det.get('segmentation', [])
         if seg_points and len(seg_points) >= 3:
             draw_segmentation_overlay(snap_frame, seg_points, color, alpha=0.3)
         cv2.rectangle(snap_frame, (det['x1'], det['y1']), (det['x2'], det['y2']), color, 3)
-        label = f"{det['class']} {det['confidence']*100:.0f}%"
+        label = f"1. {det['class']} {det['confidence']*100:.0f}%"
         cv2.putText(snap_frame, label, (det['x1'], det['y1'] - 8), cv2.FONT_HERSHEY_SIMPLEX, 0.7, color, 2)
         cv2.imwrite(snap_path, snap_frame)
 
@@ -406,8 +439,20 @@ def get_stats():
     cur = conn.cursor()
     total = cur.execute("SELECT COUNT(*) FROM potholes").fetchone()[0]
     sev_rows = cur.execute("SELECT severity, COUNT(*) FROM potholes GROUP BY severity").fetchall()
-    sev = {'Low': 0, 'Medium': 0, 'High': 0}
-    for r in sev_rows: sev[r[0]] = r[1]
+    sev = {'Low': 0, 'Medium': 0, 'High': 0, 'Kecil': 0, 'Sedang': 0, 'Besar': 0}
+    for r in sev_rows:
+        val, cnt = r[0], r[1]
+        if val in ('High', 'Besar'):
+            sev['High'] += cnt
+            sev['Besar'] += cnt
+        elif val in ('Medium', 'Sedang'):
+            sev['Medium'] += cnt
+            sev['Sedang'] += cnt
+        elif val in ('Low', 'Kecil'):
+            sev['Low'] += cnt
+            sev['Kecil'] += cnt
+        elif val in sev:
+            sev[val] = cnt
     avgs = cur.execute("SELECT COALESCE(AVG(diameter),0), COALESCE(AVG(depth),0), COALESCE(AVG(speed),0) FROM potholes").fetchone()
     conn.close()
     
@@ -463,7 +508,7 @@ def test_page():
 
 @app.route('/api/detect-image', methods=['POST'])
 def detect_image():
-    """Deteksi lubang dari gambar yang di-upload (file upload)"""
+    """PotDeck dari gambar yang di-upload (file upload)"""
     load_upload_model()
 
     if 'image' not in request.files:
@@ -484,7 +529,7 @@ def detect_image():
         return jsonify({'error': 'Format gambar tidak valid'}), 400
 
     fh, fw = frame.shape[:2]
-    conf_threshold = float(request.form.get('confidence', 0.05))
+    conf_threshold = float(request.form.get('confidence', 0.90))
     t0 = time.time()
     detections = []
 
@@ -524,8 +569,9 @@ def detect_image():
 
     # Gambar segmentasi mask dan bounding box pada frame
     annotated = frame.copy()
-    for det in detections:
-        color_map = {'High': (0, 0, 255), 'Medium': (0, 165, 255), 'Low': (0, 255, 0)}
+    detections = filter_overlapping_boxes(detections)
+    for idx, det in enumerate(detections):
+        color_map = {'Besar': (0, 0, 255), 'Sedang': (0, 165, 255), 'Kecil': (0, 255, 0)}
         color = color_map.get(det['severity'], (0, 255, 0))
         # Gambar segmentasi mask (poligon semi-transparan) di dalam bounding box
         seg_points = det.get('segmentation', [])
@@ -533,7 +579,7 @@ def detect_image():
             draw_segmentation_overlay(annotated, seg_points, color, alpha=0.3)
         cv2.rectangle(annotated, (det['x1'], det['y1']), (det['x2'], det['y2']), color, 3)
 
-        label = f"{det['class']} {det['confidence']*100:.0f}% | {det['severity']}"
+        label = f"{idx + 1}. {det['class']} {det['confidence']*100:.0f}% | {det['severity']}"
         (tw, th), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.65, 2)
         cv2.rectangle(annotated, (det['x1'], det['y1'] - th - 10), (det['x1'] + tw + 10, det['y1']), color, -1)
         cv2.putText(annotated, label, (det['x1'] + 5, det['y1'] - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.65, (255, 255, 255), 2)
@@ -556,7 +602,7 @@ _video_jobs = {}
 
 @app.route('/api/detect-video', methods=['POST'])
 def detect_video():
-    """Deteksi lubang dari video yang di-upload (proses frame-by-frame)"""
+    """PotDeck dari video yang di-upload (proses frame-by-frame)"""
     load_upload_model()
 
     if 'video' not in request.files:
@@ -596,7 +642,7 @@ def detect_video():
         'error': None
     }
 
-    conf_threshold = float(request.form.get('confidence', 0.15))
+    conf_threshold = float(request.form.get('confidence', 0.90))
 
     # Proses di background thread
     def process_video():
@@ -651,15 +697,16 @@ def detect_video():
                             all_detections.append(det_data)
 
                     # Gambar segmentasi mask dan bounding box pada frame
-                    for det in frame_dets:
-                        color_map = {'High': (0, 0, 255), 'Medium': (0, 165, 255), 'Low': (0, 255, 0)}
+                    frame_dets = filter_overlapping_boxes(frame_dets)
+                    for idx, det in enumerate(frame_dets):
+                        color_map = {'Besar': (0, 0, 255), 'Sedang': (0, 165, 255), 'Kecil': (0, 255, 0)}
                         color = color_map.get(det['severity'], (0, 255, 0))
                         # Gambar segmentasi mask (poligon semi-transparan) di dalam bounding box
                         seg_points = det.get('segmentation', [])
                         if seg_points and len(seg_points) >= 3:
                             draw_segmentation_overlay(frame, seg_points, color, alpha=0.3)
                         cv2.rectangle(frame, (det['x1'], det['y1']), (det['x2'], det['y2']), color, 3)
-                        label = f"{det['class']} {det['confidence']*100:.0f}%"
+                        label = f"{idx + 1}. {det['class']} {det['confidence']*100:.0f}%"
                         (tw, th), _ = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.65, 2)
                         cv2.rectangle(frame, (det['x1'], det['y1'] - th - 10), (det['x1'] + tw + 10, det['y1']), color, -1)
                         cv2.putText(frame, label, (det['x1'] + 5, det['y1'] - 5), cv2.FONT_HERSHEY_SIMPLEX, 0.65, (255, 255, 255), 2)
@@ -709,8 +756,15 @@ def video_status(job_id):
     return jsonify(job)
 
 
+@app.route('/favicon.ico')
+def favicon():
+    return '', 204
+
+
 @app.errorhandler(Exception)
 def handle_exception(e):
+    if isinstance(e, HTTPException):
+        return e
     logging.exception("Error:")
     return jsonify({'error': 'Server Error', 'message': str(e)}), 500
 

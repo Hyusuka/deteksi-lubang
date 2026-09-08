@@ -31,3 +31,6 @@ Thumbs.db
 # Dokumentasi
 doc/
 
+# Logs
+logs/
+*.log

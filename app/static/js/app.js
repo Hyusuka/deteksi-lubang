@@ -64,7 +64,7 @@ async function initCameraList() {
 
         const devices = await navigator.mediaDevices.enumerateDevices();
         const videoDevices = devices.filter(d => d.kind === 'videoinput');
-        
+
         select.innerHTML = '';
         if (videoDevices.length === 0) {
             select.innerHTML = '<option value="">Tidak ada kamera terdeteksi</option>';
@@ -77,7 +77,7 @@ async function initCameraList() {
             option.value = device.deviceId;
             const label = device.label || `Kamera ${index + 1}`;
             option.text = label;
-            
+
             // Auto-pilih kamera belakang
             const labelLow = label.toLowerCase();
             if (!backCameraFound && (labelLow.includes('back') || labelLow.includes('environment') || labelLow.includes('belakang') || labelLow.includes('rear'))) {
@@ -344,7 +344,7 @@ function startDetectionLoop() {
         const maxDim = 1280;
         let scale = Math.min(maxDim / video.videoWidth, maxDim / video.videoHeight);
         if (scale > 1) scale = 1;
-        
+
         captureCanvas.width = video.videoWidth * scale;
         captureCanvas.height = video.videoHeight * scale;
         captureCtx.drawImage(video, 0, 0, captureCanvas.width, captureCanvas.height);
@@ -491,7 +491,7 @@ function drawDetections(detections, vw, vh) {
 
     if (!detections || detections.length === 0) return;
 
-    detections.forEach(det => {
+    detections.forEach((det, index) => {
         const { x1, y1, x2, y2, confidence, class: cls, segmentation } = det;
         const w = x2 - x1, h = y2 - y1;
 
@@ -570,7 +570,7 @@ function drawDetections(detections, vw, vh) {
         ctx.beginPath(); ctx.moveTo(x2 - cornerLen, y2); ctx.lineTo(x2, y2); ctx.lineTo(x2, y2 - cornerLen); ctx.stroke();
 
         // Label
-        const label = `YOLOv9: ${cls} ${(confidence * 100).toFixed(0)}%`;
+        const label = `${index + 1}. ${cls} ${(confidence * 100).toFixed(0)}%`;
         ctx.font = 'bold 14px Outfit';
         const tw = ctx.measureText(label).width;
         ctx.fillStyle = color;
@@ -598,9 +598,9 @@ function _getAudioCtx() {
 function playBellAlert(severity) {
     const ctx = _getAudioCtx();
     const configs = {
-        'High':   { freq: 880, repeat: 3, duration: 0.28, gap: 0.12, volume: 0.7, type: 'sine' },
+        'High': { freq: 880, repeat: 3, duration: 0.28, gap: 0.12, volume: 0.7, type: 'sine' },
         'Medium': { freq: 660, repeat: 2, duration: 0.22, gap: 0.15, volume: 0.5, type: 'sine' },
-        'Low':    { freq: 440, repeat: 1, duration: 0.18, gap: 0,    volume: 0.35, type: 'sine' }
+        'Low': { freq: 440, repeat: 1, duration: 0.18, gap: 0, volume: 0.35, type: 'sine' }
     };
     const cfg = configs[severity] || configs['Low'];
 
@@ -694,8 +694,8 @@ function triggerWarning(det) {
         <div class="warning-danger ${isMedium ? 'medium' : ''}">
             <h3>⚠️ LUBANG TERDETEKSI! <span style="font-size:0.65rem;opacity:0.7;font-weight:400;">${modeLabel}</span></h3>
             <p>${det.severity === 'High' ? 'BAHAYA TINGGI — Kurangi kecepatan segera!' :
-                 det.severity === 'Medium' ? 'Waspada — Lubang sedang di depan.' :
-                 'Lubang kecil terdeteksi.'}</p>
+            det.severity === 'Medium' ? 'Waspada — Lubang sedang di depan.' :
+                'Lubang kecil terdeteksi.'}</p>
             <div class="warn-grid" style="grid-template-columns: repeat(2, 1fr);">
                 <div class="warn-item"><span class="wl">Diameter</span><span class="wv" style="color:var(--warn)">${det.diameter} cm</span></div>
                 <div class="warn-item"><span class="wl">Kedalaman</span><span class="wv" style="color:var(--danger)">${det.depth} cm</span></div>
@@ -746,9 +746,9 @@ function resetWarning() {
 // ═══════════════════════════════════════════════
 const ALERT_MODES = ['bell', 'ai', 'silent'];
 const ALERT_MODE_META = {
-    bell:   { icon: '🔔', label: 'BELL',   toastText: 'Mode Bell Alert Aktif' },
-    ai:     { icon: '🤖', label: 'AI',     toastText: 'Mode Suara AI Aktif' },
-    silent: { icon: '🔕', label: 'MUTE',   toastText: 'Mode Silent (Visual Only)' }
+    bell: { icon: '🔔', label: 'BELL', toastText: 'Mode Bell Alert Aktif' },
+    ai: { icon: '🤖', label: 'AI', toastText: 'Mode Suara AI Aktif' },
+    silent: { icon: '🔕', label: 'MUTE', toastText: 'Mode Silent (Visual Only)' }
 };
 
 function initSoundSelector() {
@@ -922,27 +922,27 @@ function addToLogTable(det) {
 // ═══════════════════════════════════════════════
 function openPotholeModal(det) {
     document.getElementById('modal-img').src = det.snapshot_path || '';
-    
+
     const sevBadge = document.getElementById('modal-severity');
     sevBadge.textContent = det.severity;
     sevBadge.className = 'm-val badge-sev ' + det.severity.toLowerCase();
-    
+
     document.getElementById('modal-diameter').textContent = `${det.diameter} cm`;
     document.getElementById('modal-depth').textContent = `${det.depth} cm`;
-    
+
     // Hitung volume jika belum ada di objek det (sebagai fallback dinamis)
     const radius = det.diameter / 2;
     const vol = det.volume || Math.max(0.1, Math.round((0.5 * 3.14159 * Math.pow(radius, 2) * det.depth / 1000) * 10) / 10);
     document.getElementById('modal-volume').textContent = `${vol} Liter`;
-    
+
     document.getElementById('modal-time').textContent = det.timestamp || '--';
     document.getElementById('modal-speed').textContent = `${det.speed} km/h`;
-    
+
     const lat = typeof det.latitude === 'number' ? det.latitude.toFixed(6) : det.latitude;
     const lon = typeof det.longitude === 'number' ? det.longitude.toFixed(6) : det.longitude;
     document.getElementById('modal-coords').textContent = `${lat}, ${lon}`;
     document.getElementById('modal-maps-btn').href = det.google_maps_url || '#';
-    
+
     document.getElementById('pothole-modal').style.display = 'flex';
 }
 
@@ -1055,7 +1055,7 @@ function exportJSON() {
 
 // Clear all data
 function clearAll() {
-    if (!confirm('Hapus SEMUA data deteksi lubang?')) return;
+    if (!confirm('Hapus SEMUA data PotDeck?')) return;
     fetch('/api/potholes').then(r => r.json()).then(data => {
         const promises = data.map(p => fetch(`/api/potholes/${p.id}`, { method: 'DELETE' }));
         Promise.all(promises).then(() => {

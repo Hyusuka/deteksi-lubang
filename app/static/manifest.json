@@ -1,6 +1,6 @@
 {
-  "name": "Deteksi Lubang YOLOv9",
-  "short_name": "Deteksi Lubang",
+  "name": "PotDeck YOLOv9",
+  "short_name": "PotDeck",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0A0D12",
